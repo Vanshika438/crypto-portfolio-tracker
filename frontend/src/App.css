@@ -1,0 +1,296 @@
+/* Global Reset & Typography */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: #f8f9fa; /* Light grey background */
+  color: #2c3e50;
+  line-height: 1.6;
+}
+
+h2 {
+  color: #1a202c;
+  margin-bottom: 1.5rem;
+  font-weight: 700;
+}
+
+h3, h4 {
+  color: #4a5568;
+  margin-bottom: 0.5rem;
+}
+
+/* --- Navigation Bar --- */
+.navbar {
+  background-color: #1a237e; /* Deep Indigo/Blue */
+  color: white;
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.navbar-logo {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  background: linear-gradient(45deg, #fff, #a5b4fc);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.navbar-links {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.navbar-links a {
+  color: #e0e7ff;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.navbar-links a:hover {
+  color: #ffffff;
+}
+
+/* --- Buttons --- */
+button {
+  cursor: pointer;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+}
+
+/* Primary Action Buttons (Add Asset, Login, etc.) */
+button[type="submit"], 
+button:not(.logout-btn):not(.delete-btn) {
+  background-color: #4f46e5; /* Indigo */
+  color: white;
+  box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2);
+}
+
+button[type="submit"]:hover {
+  background-color: #4338ca;
+  transform: translateY(-1px);
+}
+
+/* Logout Button */
+.logout-btn {
+  background-color: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 6px 16px;
+  color: white;
+}
+
+.logout-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: white;
+}
+
+/* --- Forms & Inputs --- */
+input {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 15px;
+  border: 1px solid #cbd5e0;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+}
+
+input:focus {
+  outline: none;
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+form {
+  margin-bottom: 2rem;
+}
+
+/* --- Auth Page Styling --- */
+.auth-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 80vh;
+  padding: 20px;
+}
+
+.auth-container form {
+  background: white;
+  padding: 2.5rem;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+}
+
+.auth-container button[type="submit"] {
+  width: 100%;
+  margin-top: 10px;
+  border: 2px solid transparent;
+}
+
+.auth-container .submitButton{
+  width: 100%;
+  margin-top: 10px;
+  border: 2px solid transparent;
+}
+.auth-container .submitButton:hover{
+  width: 100%;
+  margin-top: 10px;
+  color: #4f46e5;
+  background-color: white;
+  border: 2px solid #4f46e5;
+}
+
+
+.auth-container > button {
+  background: transparent;
+  color: #4f46e5;
+  margin-top: 20px;
+  
+  box-shadow: none;
+}
+
+.auth-container > button:hover {
+  text-decoration: none;
+  background: white;
+  color: #4f46e5;
+  border: 2px solid #4f46e5;
+  transform: none;
+}
+
+/* --- Profile Styling --- */
+.profile-container {
+  max-width: 600px;
+  margin: 40px auto;
+  background: white;
+  padding: 40px;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.profile-container h3 {
+  margin-top: 1.5rem;
+  color: #718096;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.profile-container p {
+  font-size: 1.1rem;
+  font-weight: 500;
+  border-bottom: 1px solid #edf2f7;
+  padding-bottom: 10px;
+}
+
+/* --- Portfolio Page Styling --- */
+/* Wrapper for the whole page content (assumes you wrap page content in a div) */
+div > h2 {
+  text-align: center;
+  margin-top: 30px;
+}
+
+/* Style the asset list items */
+div > div > h4 {
+  color: #2d3748;
+  font-size: 1.2rem;
+}
+
+/* Targeting the mapped asset list items */
+div[style*="padding: 20px"], /* Dashboard wrapper */
+div:has(> form) { /* Portfolio wrapper heuristic */
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* The Portfolio Form */
+div:has(> form) form {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+div:has(> form) form input {
+  flex: 1;
+  min-width: 200px;
+  margin-bottom: 0;
+}
+
+div:has(> form) form button {
+  height: 46px; /* Match input height */
+}
+
+/* Asset Item Card (Generic container in Portfolio.js) */
+div:has(> h4) {
+  background: white;
+  margin-bottom: 15px;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+}
+
+div:has(> h4) h4 {
+  width: 100%;
+  margin-bottom: 10px;
+  font-size: 1.25rem;
+  color: #2b6cb0;
+}
+
+div:has(> h4) p {
+  margin-right: 20px;
+  color: #4a5568;
+}
+
+div:has(> h4) button {
+  margin-left: 10px;
+  font-size: 0.85rem;
+  padding: 8px 12px;
+}
+
+/* Edit/Delete Button specifics */
+div:has(> h4) button:first-of-type {
+  background-color: #ecc94b; /* Yellow for Edit */
+  color: #744210;
+  box-shadow: none;
+}
+
+div:has(> h4) button:last-of-type {
+  background-color: #fc8181; /* Red for Delete */
+  color: #742a2a;
+  box-shadow: none;
+}
+
+hr {
+  display: none; /* Hide standard HRs in favor of card styling */
+}
