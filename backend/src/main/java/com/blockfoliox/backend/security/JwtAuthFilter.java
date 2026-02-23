@@ -28,39 +28,48 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain) throws ServletException, IOException {
 
-        String path = request.getServletPath();
+        try {
 
-        // Skip login & register APIs
-        if (path.startsWith("/api/auth")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
+            String path = request.getServletPath();
 
-        String authHeader = request.getHeader("Authorization");
+            if (path.startsWith("/api/auth")) {
+                filterChain.doFilter(request, response);
+                return;
+            }
 
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String authHeader = request.getHeader("Authorization");
 
-            String token = authHeader.substring(7);
-            String email = jwtUtil.extractEmail(token);
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
 
-            if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                String token = authHeader.substring(7);
+                String email = jwtUtil.extractEmail(token);
 
-                if (jwtUtil.validateToken(token, email)) {
+                if (email != null &&
+                        SecurityContextHolder.getContext().getAuthentication() == null &&
+                        jwtUtil.validateToken(token, email)) {
 
-                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                            email,
-                            null,
-                            Collections.emptyList());
+                    UsernamePasswordAuthenticationToken authentication =
+                            new UsernamePasswordAuthenticationToken(
+                                    email,
+                                    null,
+                                    Collections.emptyList()
+                            );
 
                     authentication.setDetails(
-                            new WebAuthenticationDetailsSource().buildDetails(request));
+                            new WebAuthenticationDetailsSource().buildDetails(request)
+                    );
 
                     SecurityContextHolder.getContext().setAuthentication(authentication);
+
+                    System.out.println("Authenticated user: " + email);
                 }
             }
+
+        } catch (Exception e) {
+            System.out.println("JWT Authentication failed:");
+            e.printStackTrace();
         }
 
         filterChain.doFilter(request, response);
     }
-
 }

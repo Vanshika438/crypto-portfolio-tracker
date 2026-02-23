@@ -7,7 +7,6 @@ import com.blockfoliox.backend.model.User;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -18,7 +17,6 @@ import com.blockfoliox.backend.repository.ExchangeRepository;
 import com.blockfoliox.backend.repository.UserRepository;
 import com.blockfoliox.backend.security.JwtUtil;
 import com.blockfoliox.backend.service.EncryptionService;
-
 
 @RestController
 @RequestMapping("/api/exchange")
@@ -47,14 +45,18 @@ public class ExchangeController {
     @PostMapping("/connect")
     public ResponseEntity<?> connectExchange(
             @RequestBody Map<String, String> request,
-            @RequestHeader("Authorization") String authHeader) {
+            org.springframework.security.core.Authentication authentication) {
 
-        String token = authHeader.substring(7);
-        String email = jwtUtil.extractEmail(token);
+        String email = authentication.getName();
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        if (!request.containsKey("exchangeId") ||
+                !request.containsKey("apiKey") ||
+                !request.containsKey("apiSecret")) {
+            return ResponseEntity.badRequest().body("Missing required fields");
+        }
         Long exchangeId = Long.parseLong(request.get("exchangeId"));
         String apiKey = request.get("apiKey");
         String apiSecret = request.get("apiSecret");
@@ -63,6 +65,11 @@ public class ExchangeController {
         Exchange exchange = exchangeRepository.findById(exchangeId)
                 .orElseThrow(() -> new RuntimeException("Exchange not found"));
 
+        if (apiKeyRepository.existsByUserAndExchange(user, exchange)) {
+            return ResponseEntity
+                    .badRequest()
+                    .body("Exchange already connected.");
+        }
         ApiKey newKey = new ApiKey();
         newKey.setUser(user);
         newKey.setExchange(exchange);
@@ -70,10 +77,8 @@ public class ExchangeController {
         newKey.setApiSecret(encryptionService.encrypt(apiSecret));
         newKey.setLabel(label);
         newKey.setCreatedAt(LocalDateTime.now());
-
         apiKeyRepository.save(newKey);
 
         return ResponseEntity.ok("Exchange connected securely.");
     }
 }
-

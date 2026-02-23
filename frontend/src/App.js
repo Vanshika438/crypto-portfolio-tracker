@@ -6,6 +6,7 @@ import Portfolio from "./pages/Portfolio";
 import Profile from "./pages/Profile";
 import Navbar from "./components/Navbar";
 import ProtectedRoute from "./components/ProtectedRoute";
+import Exchange from "./pages/Exchange";
 import "./App.css"
 function App() {
   return (
@@ -24,6 +25,11 @@ function App() {
           <Portfolio />
         </ProtectedRoute>} />
 
+      <Route path="/exchange"
+        element={<ProtectedRoute>
+          <Exchange />
+        </ProtectedRoute>} />
+      
       <Route
         path="/profile"
         element={<ProtectedRoute>
