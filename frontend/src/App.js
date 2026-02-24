@@ -1,34 +1,20 @@
 import React from "react";
 import { Routes, Route } from "react-router-dom";
 import AuthPage from "./auth/AuthPage";
-import Dashboard from "./pages/Dashboard";
-import Portfolio from "./pages/Portfolio";
-import Profile from "./pages/Profile";
 import Navbar from "./components/Navbar";
 import ProtectedRoute from "./components/ProtectedRoute";
+import Exchange from "./pages/Exchange";
 import "./App.css"
 function App() {
   return (
     <><Navbar /><Routes>
       <Route path="/" element={<AuthPage />} />
 
-      <Route
-        path="/dashboard"
+      <Route path="/exchange"
         element={<ProtectedRoute>
-          <Dashboard />
+          <Exchange />
         </ProtectedRoute>} />
-
-      <Route
-        path="/portfolio"
-        element={<ProtectedRoute>
-          <Portfolio />
-        </ProtectedRoute>} />
-
-      <Route
-        path="/profile"
-        element={<ProtectedRoute>
-          <Profile />
-        </ProtectedRoute>} />
+      
     </Routes></>
   );
 }
