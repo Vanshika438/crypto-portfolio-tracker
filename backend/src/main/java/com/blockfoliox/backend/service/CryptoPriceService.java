@@ -4,6 +4,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -13,7 +14,7 @@ public class CryptoPriceService {
 
     private Map<String, Map<String, Object>> cachedPrices;
     private long lastFetchTime = 0;
-    private static final long CACHE_DURATION = 60000; 
+    private static final long CACHE_DURATION = 60000;
 
     public CryptoPriceService() {
         this.restTemplate = new RestTemplate();
@@ -42,7 +43,24 @@ public class CryptoPriceService {
 
         } catch (Exception e) {
             System.err.println("Error fetching price: " + e.getMessage());
-            return cachedPrices; 
+            return cachedPrices;
+        }
+    }
+
+    public List<Map<String, Object>> getAllMarketData() {
+
+        String url = "https://api.coingecko.com/api/v3/coins/markets"
+                + "?vs_currency=inr"
+                + "&ids=bitcoin,ethereum,solana,cardano,binancecoin,tether,ripple,dogecoin,polkadot,matic-network"
+                + "&sparkline=true"
+                + "&price_change_percentage=7d";
+
+        try {
+            ResponseEntity<List> response = restTemplate.getForEntity(url, List.class);
+            return response.getBody();
+        } catch (Exception e) {
+            System.err.println("Error fetching market data: " + e.getMessage());
+            return List.of();
         }
     }
 
