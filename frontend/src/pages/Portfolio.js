@@ -4,7 +4,7 @@ import {
   addAsset,
   deleteAsset,
   updateAsset,
-} from "../api/portfolioApi";
+} from "../api/holdingApi";
 
 const Portfolio = () => {
   const [assets, setAssets] = useState([]);

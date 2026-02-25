@@ -4,6 +4,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
@@ -64,19 +65,19 @@ public class CryptoPriceService {
         }
     }
 
-    public double getCurrentPrice(String assetName) {
+    public BigDecimal getCurrentPrice(String assetName) {
 
         String coinId = mapToCoinGeckoId(assetName);
 
         Map<String, Map<String, Object>> prices = getAllPrices();
 
         if (prices == null || !prices.containsKey(coinId)) {
-            return 0.0;
+            return BigDecimal.ZERO;
         }
 
         Map<String, Object> priceData = prices.get(coinId);
 
-        return Double.parseDouble(priceData.get("inr").toString());
+        return new BigDecimal(priceData.get("inr").toString());
     }
 
     private String mapToCoinGeckoId(String symbol) {

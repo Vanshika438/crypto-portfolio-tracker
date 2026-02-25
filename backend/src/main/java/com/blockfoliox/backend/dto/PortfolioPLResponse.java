@@ -1,51 +1,24 @@
 package com.blockfoliox.backend.dto;
 
+import lombok.*;
+
+import java.math.BigDecimal;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class PortfolioPLResponse {
 
     private String assetName;
-    private double buyPrice;
-    private double currentPrice;
-    private double quantity;
-    private double profitLoss;
 
-    // getters & setters
-    public String getAssetName() {
-        return assetName;
-    }
+    private BigDecimal buyPrice;
 
-    public void setAssetName(String assetName) {
-        this.assetName = assetName;
-    }
+    private BigDecimal currentPrice;
 
-    public double getBuyPrice() {
-        return buyPrice;
-    }
+    private BigDecimal quantity;
 
-    public void setBuyPrice(double buyPrice) {
-        this.buyPrice = buyPrice;
-    }
+    private BigDecimal profitLoss;
 
-    public double getCurrentPrice() {
-        return currentPrice;
-    }
-
-    public void setCurrentPrice(double currentPrice) {
-        this.currentPrice = currentPrice;
-    }
-
-    public double getQuantity() {
-        return quantity;
-    }
-
-    public void setQuantity(double quantity) {
-        this.quantity = quantity;
-    }
-
-    public double getProfitLoss() {
-        return profitLoss;
-    }
-
-    public void setProfitLoss(double profitLoss) {
-        this.profitLoss = profitLoss;
-    }
+    private BigDecimal profitLossPercent;
 }

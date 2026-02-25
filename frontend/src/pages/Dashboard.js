@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { getPortfolioSummary, getPortfolioPL } from "../api/portfolioApi";
+import { getPortfolioSummary, getPortfolioPL } from "../api/holdingApi";
 import { Star, TrendingUp, TrendingDown, RefreshCcw, Edit2, Trash2 } from "lucide-react";
 
 const Dashboard = () => {

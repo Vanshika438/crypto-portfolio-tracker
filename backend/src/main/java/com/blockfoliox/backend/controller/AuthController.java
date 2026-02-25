@@ -11,24 +11,29 @@ import java.util.Map;
 
 import java.util.Optional;
 
-
 @RestController
 @RequestMapping("/api/auth")
 @CrossOrigin
 public class AuthController {
 
     private final UserRepository userRepository;
-    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private final BCryptPasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
 
-    public AuthController(UserRepository userRepository, JwtUtil jwtUtil) {
+    public AuthController(UserRepository userRepository,
+            JwtUtil jwtUtil,
+            BCryptPasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.jwtUtil = jwtUtil;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @PostMapping("/register")
-    public Map<String,String> register(@RequestBody User user) {
+    public Map<String, String> register(@RequestBody User user) {
         user.setPassword(passwordEncoder.encode(user.getPassword()));
+        if (userRepository.existsByEmail(user.getEmail())) {
+            throw new RuntimeException("Email already registered");
+        }
         userRepository.save(user);
         String token = jwtUtil.generateToken(user.getEmail());
 
@@ -67,6 +72,5 @@ public class AuthController {
     public String test() {
         return "Test is Working";
     }
-    
 
 }
