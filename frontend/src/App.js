@@ -2,7 +2,7 @@ import React from "react";
 import { Routes, Route } from "react-router-dom";
 import AuthPage from "./auth/AuthPage";
 import Dashboard from "./pages/Dashboard";
-import Portfolio from "./pages/Portfolio";
+import Holding from "./pages/Holding";
 import Profile from "./pages/Profile";
 import Navbar from "./components/Navbar";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -20,9 +20,9 @@ function App() {
         </ProtectedRoute>} />
 
       <Route
-        path="/portfolio"
+        path="/holding"
         element={<ProtectedRoute>
-          <Portfolio />
+          <Holding />
         </ProtectedRoute>} />
 
       <Route path="/exchange"

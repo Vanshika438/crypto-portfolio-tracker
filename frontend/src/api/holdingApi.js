@@ -1,6 +1,6 @@
 import api from "./axios";
 
-export const getMyPortfolio = () => {
+export const getMyHoldings = () => {
   return api.get("/holding/my");
 };
 
@@ -23,3 +23,4 @@ export const getPortfolioPL = () => {
 export const getPortfolioSummary = () => {
   return api.get("/holding/summary");
 };
+

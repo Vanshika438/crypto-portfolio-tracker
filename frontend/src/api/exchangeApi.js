@@ -9,3 +9,20 @@ export const connectExchange = async (exchangeData) => {
     });
     return response.data;
 };
+
+export const syncExchange = async (exchangeId) => {
+  const response = await axios.post(
+    "/exchange/sync",
+    {
+      exchangeId: exchangeId.toString(), // important
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  return response.data;
+};

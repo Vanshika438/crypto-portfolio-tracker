@@ -130,15 +130,13 @@ public class HoldingController {
 
                 for (Holding holding : holdings) {
 
-                        PortfolioPLResponse pl = holdingService.calculatePL(holding);
+                        BigDecimal investedValue = holding.getBuyPrice().multiply(holding.getQuantity());
 
-                        BigDecimal invested = holding.getBuyPrice()
-                                        .multiply(holding.getQuantity());
+                        BigDecimal currentPrice = cryptoPriceService.getCurrentPrice(holding.getAssetName());
 
-                        BigDecimal currentValue = pl.getCurrentPrice()
-                                        .multiply(holding.getQuantity());
+                        BigDecimal currentValue = holding.getQuantity().multiply(currentPrice);
 
-                        totalInvested = totalInvested.add(invested);
+                        totalInvested = totalInvested.add(investedValue);
                         totalCurrentValue = totalCurrentValue.add(currentValue);
                 }
 

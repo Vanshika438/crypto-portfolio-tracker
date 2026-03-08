@@ -38,8 +38,8 @@ const Navbar = () => {
             <Link to="/dashboard" className={linkClasses("/dashboard")}>
               Dashboard
             </Link>
-            <Link to="/portfolio" className={linkClasses("/portfolio")}>
-              Portfolio
+            <Link to="/holding" className={linkClasses("/holding")}>
+              Holding
             </Link>
             <Link to="/profile" className={linkClasses("/profile")}>
               Profile
@@ -74,8 +74,8 @@ const Navbar = () => {
           <Link to="/dashboard" className={linkClasses("/dashboard")}>
             Dashboard
           </Link>
-          <Link to="/portfolio" className={linkClasses("/portfolio")}>
-            Portfolio
+          <Link to="/holding" className={linkClasses("/holding")}>
+            Holdings
           </Link>
           <Link to="/profile" className={linkClasses("/profile")}>
             Profile
