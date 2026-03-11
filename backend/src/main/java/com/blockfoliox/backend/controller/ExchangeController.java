@@ -110,6 +110,27 @@ public class ExchangeController {
         apiKeyRepository.findByUserAndExchange(user, exchange)
                 .orElseThrow(() -> new RuntimeException("Exchange not connected"));
 
-        return ResponseEntity.ok(exchangeService.syncHoldings(user,exchange));
+        return ResponseEntity.ok(exchangeService.syncHoldings(user, exchange));
+    }
+
+    @DeleteMapping("/{exchangeId}")
+    public ResponseEntity<?> disconnectExchange(
+            @PathVariable Long exchangeId,
+            org.springframework.security.core.Authentication authentication) {
+
+        String email = authentication.getName();
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        Exchange exchange = exchangeRepository.findById(exchangeId)
+                .orElseThrow(() -> new RuntimeException("Exchange not found"));
+
+        ApiKey apiKey = apiKeyRepository.findByUserAndExchange(user, exchange)
+                .orElseThrow(() -> new RuntimeException("Connection not found"));
+
+        apiKeyRepository.delete(apiKey);
+
+        return ResponseEntity.ok("Exchange disconnected");
     }
 }

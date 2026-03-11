@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
-import { getPortfolioSummary, getPortfolioPL } from "../api/holdingApi";
+import { getPortfolioSummary, getPortfolioPL, deleteAsset } from "../api/holdingApi";
 import { syncExchange } from "../api/exchangeApi";
 import { fetchCharts as fetchMarketCharts } from "../api/cryptoApi";
 import { Star, TrendingUp, TrendingDown, RefreshCcw, Edit2, Trash2 } from "lucide-react";
-import { LineChart, Line, ResponsiveContainer, YAxis } from "recharts";
+import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 
 const Dashboard = () => {
+
   const [portfolio, setPortfolio] = useState([]);
   const [summary, setSummary] = useState({
     totalInvested: 0,
@@ -21,6 +22,9 @@ const Dashboard = () => {
   const hasLoadedChartsRef = useRef(false);
   const exchangeId = 1;
   const [selectedCoin, setSelectedCoin] = useState(null);
+  const [timeframe, setTimeframe] = useState("7D");
+
+  const timeframes = ["7D"];
 
 
   const guessSymbol = (name) => {
@@ -48,6 +52,60 @@ const Dashboard = () => {
     const lower = (name || "").toLowerCase().trim();
     return map[lower] || lower;
   };
+  const totalPortfolioData = React.useMemo(() => {
+    if (!portfolio.length || Object.keys(charts).length === 0) return [];
+
+    // 1. Create a fixed timeline of 168 points (7 days * 24 hours)
+    const numPoints = 168;
+    const now = Date.now();
+    const interval = (7 * 24 * 60 * 60 * 1000) / numPoints;
+    const startTime = now - (7 * 24 * 60 * 60 * 1000);
+
+    const unifiedData = [];
+
+    for (let i = 0; i <= numPoints; i++) {
+      const targetTime = startTime + i * interval;
+      let totalValueAtTime = 0;
+
+      portfolio.forEach((asset) => {
+        const coinId = guessSymbol(asset.assetName);
+        const quantity = Number(asset.quantity || 0);
+        const coinChart = charts[coinId] || [];
+
+        if (coinChart.length > 0) {
+          // Find the closest data point for this specific coin to prevent double-counting
+          let closestValue = coinChart[0].value;
+          let minDiff = Math.abs(coinChart[0].time - targetTime);
+
+          for (let j = 1; j < coinChart.length; j++) {
+            const diff = Math.abs(coinChart[j].time - targetTime);
+            if (diff < minDiff) {
+              minDiff = diff;
+              closestValue = coinChart[j].value;
+            }
+          }
+          totalValueAtTime += (closestValue * quantity);
+        }
+      });
+
+      unifiedData.push({
+        time: targetTime,
+        value: Number(totalValueAtTime.toFixed(2))
+      });
+    }
+
+    return unifiedData;
+  }, [portfolio, charts]);
+
+  const portfolioTrendPositive = React.useMemo(() => {
+    if (totalPortfolioData.length < 2) return true;
+
+    const first = totalPortfolioData[0].value;
+    const last = totalPortfolioData[totalPortfolioData.length - 1].value;
+
+    return last >= first;
+  }, [totalPortfolioData]);
+
 
   const toCoincapSymbol = (name) => {
     const map = {
@@ -93,10 +151,23 @@ const Dashboard = () => {
         const symbol = toCoincapSymbol(coin.assetName);
 
         const marketItem = marketById[coinId];
-        const prices = marketItem?.sparkline_in_7d?.price ?? [];
+        const rawPrices = marketItem?.sparkline_in_7d?.price ?? [];
 
-        chartData[coinId] = prices
-          .map((value, index) => ({ time: index, value: Number(value) }))
+
+        let multiplier = 1;
+        if (rawPrices.length > 0 && marketItem?.current_price) {
+          const lastSparklinePrice = rawPrices[rawPrices.length - 1];
+          multiplier = marketItem.current_price / lastSparklinePrice;
+        }
+
+        const now = Date.now();
+        const interval = (7 * 24 * 60 * 60 * 1000) / rawPrices.length;
+
+        chartData[coinId] = rawPrices
+          .map((value, index) => ({
+            time: now - (rawPrices.length - 1 - index) * interval,
+            value: Number((value * multiplier).toFixed(2))
+          }))
           .filter((point) => Number.isFinite(point.value));
 
         imageData[coinId] =
@@ -155,11 +226,16 @@ const Dashboard = () => {
       currency: "INR",
       maximumFractionDigits: 2
     }).format(value || 0);
-
   const formatQuantity = (value) => {
     const num = Number(value);
     return Number.isFinite(num) ? num.toFixed(4) : "0.0000";
   };
+
+  const formatTooltip = (value) =>
+    new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR"
+    }).format(value);
 
 
   const [isSyncing, setIsSyncing] = useState(false);
@@ -176,6 +252,23 @@ const Dashboard = () => {
     }
   };
 
+  const handleDelete = async (e, id) => {
+    e.stopPropagation();
+    console.log("asset",id);
+
+    if (!window.confirm("Delete this asset from portfolio?")) return;
+
+    try {
+      await deleteAsset(id);
+      await fetchDashboardData();
+    } catch (err) {
+      console.error("Delete failed:", err);
+    }
+  };
+  const handleEdit = (e, asset) => {
+    e.stopPropagation();
+    console.log("Edit asset:", asset);
+  };
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-900 flex justify-center items-center text-slate-400">
@@ -220,6 +313,71 @@ const Dashboard = () => {
             <RefreshCcw size={16} className={isSyncing ? "animate-spin" : ""} />
             {isSyncing ? "Syncing..." : "Sync Exchange"}
           </button>
+        </div>
+
+        {/* TOTAL PORTFOLIO VALUE CHART */}
+
+        <div className="mb-10 bg-slate-800/40 border border-slate-700/50 rounded-xl p-6">
+
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-white">
+              Total Portfolio Value
+            </h3>
+
+            <div className={`text-sm font-semibold ${portfolioTrendPositive ? "text-emerald-400" : "text-red-400"
+              }`}>
+              {portfolioTrendPositive ? "▲ 7D Growth" : "▼ 7D Decline"}
+            </div>
+          </div>
+
+          <div className="h-40 w-full">
+
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={totalPortfolioData}>
+
+                <defs>
+                  <linearGradient id="portfolioGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop
+                      offset="5%"
+                      stopColor={portfolioTrendPositive ? "#22c55e" : "#ef4444"}
+                      stopOpacity={0.35}
+                    />
+                    <stop
+                      offset="95%"
+                      stopColor={portfolioTrendPositive ? "#22c55e" : "#ef4444"}
+                      stopOpacity={0}
+                    />
+                  </linearGradient>
+                </defs>
+                <XAxis dataKey="time" hide={true} />
+                <YAxis domain={["dataMin", "dataMax"]} hide={true} />
+
+                <Tooltip
+                  formatter={(value) => formatINR(value)}
+                  labelFormatter={(label) =>
+                    new Date(label).toLocaleString("en-IN")
+                  }
+                  contentStyle={{
+                    backgroundColor: "#111827",
+                    border: "1px solid #374151",
+                    borderRadius: "8px",
+                    color: "#fff"
+                  }}
+                />
+
+                <Area
+                  type="monotone"
+                  dataKey="value"
+                  stroke={portfolioTrendPositive ? "#22c55e" : "#ef4444"}
+                  strokeWidth={2.5}
+                  fill="url(#portfolioGradient)"
+                  dot={false}
+                />
+
+              </AreaChart>
+            </ResponsiveContainer>
+
+          </div>
         </div>
 
         {/* SUMMARY CARDS */}
@@ -353,39 +511,150 @@ const Dashboard = () => {
 
                         <td className="px-4 py-4 text-center">
                           <div className="flex justify-center gap-2">
-                            <button className="p-2 rounded-lg hover:bg-slate-800 text-slate-500 hover:text-indigo-400">
+                            <button
+                              onClick={(e) => handleEdit(e, asset)}
+                              className="p-2 rounded-lg hover:bg-slate-800 text-slate-500 hover:text-indigo-400"
+                            >
                               <Edit2 size={16} />
                             </button>
 
-                            <button className="p-2 rounded-lg hover:bg-slate-800 text-slate-500 hover:text-red-400">
+                            <button
+                              onClick={(e) => handleDelete(e, asset.id)}
+                              className="p-2 rounded-lg hover:bg-slate-800 text-slate-500 hover:text-red-400"
+                            >
                               <Trash2 size={16} />
                             </button>
                           </div>
                         </td>
 
                       </tr>
-
                       {/* EXPANDABLE CHART */}
                       {selectedCoin?.assetName === asset.assetName && (
                         <tr>
-                          <div className="flex items-center justify-between px-6 pb-3 text-xs text-slate-400 font-semibold">
-                            <span>Last 7 Days</span>
-                          </div>
                           <td colSpan="6" className="bg-slate-900/60 px-6 py-6">
+
+                            {/* CHART HEADER */}
+                            <div className="flex items-center justify-between mb-4">
+
+                              <span className="text-xs text-slate-400 font-semibold">
+                                Past History
+                              </span>
+
+                              <div className="flex gap-2">
+                                {timeframes.map((tf) => (
+                                  <button
+                                    key={tf}
+                                    onClick={() => setTimeframe(tf)}
+                                    className={`px-3 py-1 text-xs rounded-full transition
+                                        ${timeframe === tf
+                                        ? "bg-indigo-600 text-white"
+                                        : "bg-slate-800 text-slate-400 hover:bg-slate-700"
+                                      }`}
+                                  >
+                                    {tf}
+                                  </button>
+                                ))}
+                              </div>
+
+                            </div>
+
+                            {/* CHART */}
                             <div className="h-56 w-full">
                               <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={charts[coinId] || []}>
-                                  <YAxis hide domain={["dataMin", "dataMax"]} />
-                                  <Line
-                                    type="linear"
+                                <AreaChart data={charts[coinId] || []}>
+
+                                  {/* 1. Define the Gradients here */}
+                                  <defs>
+                                    {/* Green Gradient for Profit */}
+                                    <linearGradient id="colorGreen" x1="0" y1="0" x2="0" y2="1">
+                                      <stop offset="5%" stopColor="#22c55e" stopOpacity={0.4} />
+                                      <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+                                    </linearGradient>
+                                    {/* Red Gradient for Loss */}
+                                    <linearGradient id="colorRed" x1="0" y1="0" x2="0" y2="1">
+                                      <stop offset="5%" stopColor="#ef4444" stopOpacity={0.4} />
+                                      <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                                    </linearGradient>
+                                  </defs>
+
+                                  <CartesianGrid
+                                    stroke="#2a2f3a"
+                                    strokeDasharray="3 3"
+                                    vertical={false}
+                                  />
+
+                                  <XAxis
+                                    dataKey="time"
+                                    type="number"
+                                    scale="time"
+                                    domain={["dataMin", "dataMax"]}
+                                    stroke="#64748b"
+                                    tick={{ fontSize: 11 }}
+                                    minTickGap={40} // Keeps the labels spaced out cleanly
+                                    tickFormatter={(tickItem) => {
+                                      // Convert the timestamp to a readable Date object
+                                      const date = new Date(tickItem);
+
+                                      // If 24 Hours, show the time (e.g., 2:30 PM)
+                                      if (timeframe === '24H') {
+                                        return date.toLocaleTimeString('en-IN', {
+                                          hour: '2-digit',
+                                          minute: '2-digit'
+                                        });
+                                      }
+
+                                      // If 7 Days, show the day and month (e.g., Mar 09)
+                                      if (timeframe === '7D') {
+                                        return date.toLocaleDateString('en-IN', {
+                                          month: 'short',
+                                          day: 'numeric'
+                                        });
+                                      }
+
+                                      // Default fallback
+                                      return date.toLocaleDateString();
+                                    }}
+                                  />
+
+                                  <YAxis
+                                    stroke="#64748b"
+                                    tick={{ fontSize: 11 }}
+                                    domain={["dataMin", "dataMax"]}
+                                    tickFormatter={(value) => {
+                                      // Converts large numbers to compact notation (e.g., ₹1.2L, ₹1.5Cr)
+                                      if (value >= 10000000) return `₹${(value / 10000000).toFixed(2)}Cr`;
+                                      if (value >= 100000) return `₹${(value / 100000).toFixed(2)}L`;
+                                      return `₹${value.toLocaleString('en-IN')}`;
+                                    }}
+                                  />
+
+                                  <Tooltip
+                                    contentStyle={{
+                                      backgroundColor: "#111827",
+                                      border: "1px solid #374151",
+                                      borderRadius: "8px",
+                                      color: "#fff"
+                                    }}
+                                    labelStyle={{ color: "#94a3b8" }}
+                                    formatter={(value) => formatTooltip(value)}
+                                  />
+
+                                  {/* 2. Replace <Line> with <Area> and reference the gradient */}
+                                  <Area
+                                    type="monotone"
                                     dataKey="value"
                                     stroke={isProfit ? "#22c55e" : "#ef4444"}
-                                    strokeWidth={2}
+                                    strokeWidth={2.5}
+                                    fillOpacity={1}
+                                    fill={isProfit ? "url(#colorGreen)" : "url(#colorRed)"}
                                     dot={false}
+                                    activeDot={{ r: 5, fill: isProfit ? "#22c55e" : "#ef4444", stroke: "#fff" }}
                                   />
-                                </LineChart>
+
+                                </AreaChart>
                               </ResponsiveContainer>
                             </div>
+
                           </td>
                         </tr>
                       )}

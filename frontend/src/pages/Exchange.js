@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from "react";
-import axios from "../api/axios";
 import { ShieldAlert, Link as LinkIcon, Loader2 } from "lucide-react";
-
+import {
+  getExchanges,
+  connectExchange,
+  syncExchange,
+} from "../api/exchangeApi";
 const Exchange = () => {
   const [formData, setFormData] = useState({
     exchangeId: "",
@@ -13,17 +16,20 @@ const Exchange = () => {
   const [exchanges, setExchanges] = useState([]);
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-
+  const [connectedExchanges, setConnectedExchanges] = useState([]);
   // Fetch exchanges from backend
   useEffect(() => {
     const fetchExchanges = async () => {
       try {
-        const response = await axios.get("/exchange", {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        });
-        setExchanges(response.data);
+        const data = await getExchanges();
+
+        if (Array.isArray(data)) {
+          setConnectedExchanges(data);
+        } else {
+          setExchanges(data.availableExchanges || []);
+          setConnectedExchanges(data.connectedExchanges || []);
+        }
+
       } catch (error) {
         console.error("Error fetching exchanges:", error);
       }
@@ -31,6 +37,7 @@ const Exchange = () => {
 
     fetchExchanges();
   }, []);
+
 
   const handleChange = (e) => {
     setFormData({
@@ -45,38 +52,34 @@ const Exchange = () => {
     setMessage("");
 
     try {
-      await axios.post(
-        "/exchange/connect",
-        {
-          ...formData,
-          exchangeId: Number(formData.exchangeId), // important
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      await connectExchange({
+        ...formData,
+        exchangeId: Number(formData.exchangeId),
+      });
 
       setMessage("Exchange connected successfully!");
+
       setFormData({
         exchangeId: "",
         apiKey: "",
         apiSecret: "",
         label: "",
       });
+
+      // refresh connected exchanges
+      const data = await getExchanges();
+      setConnectedExchanges(data.connectedExchanges || []);
+
     } catch (error) {
       setMessage(
+        error.response?.data?.message ||
         error.response?.data ||
-          error.response?.data?.message ||
-          "Error connecting exchange"
+        "Error connecting exchange"
       );
     } finally {
       setIsLoading(false);
     }
   };
-
   return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center px-4 font-sans">
       <div className="w-full max-w-md bg-slate-800/50 border border-slate-700/50 rounded-2xl shadow-xl p-8">
@@ -100,6 +103,44 @@ const Exchange = () => {
           </p>
         </div>
 
+        {connectedExchanges.length > 0 && (
+          <div className="mb-6">
+            <h3 className="text-white font-semibold mb-3">
+              Connected Exchanges
+            </h3>
+
+            <div className="space-y-2">
+              {connectedExchanges.map((ex) => (
+                <div
+                  key={ex.id}
+                  className="flex justify-between items-center bg-slate-900/60 border border-slate-700 rounded-lg px-4 py-3"
+                >
+                  <div>
+                    <p className="text-white text-sm font-medium">
+                      {ex.label}
+                    </p>
+                    <p className="text-slate-400 text-xs">
+                      {ex.name}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <span className="text-emerald-400 text-xs font-medium">
+                      Connected
+                    </span>
+
+                    <button
+                      onClick={() => syncExchange(ex.id)}
+                      className="text-indigo-400 text-xs hover:text-indigo-300"
+                    >
+                      Sync
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="space-y-4">
           <select
             name="exchangeId"
@@ -111,11 +152,21 @@ const Exchange = () => {
             <option value="" disabled>
               Select Exchange
             </option>
-            {exchanges.map((exchange) => (
-              <option key={exchange.id} value={exchange.id}>
-                {exchange.name}
-              </option>
-            ))}
+            {exchanges.map((exchange) => {
+              const isConnected = connectedExchanges.some(
+                (ex) => ex.exchangeId === exchange.id
+              );
+
+              return (
+                <option
+                  key={exchange.id}
+                  value={exchange.id}
+                  disabled={isConnected}
+                >
+                  {exchange.name} {isConnected ? "(Connected)" : ""}
+                </option>
+              );
+            })}
           </select>
 
           <input
@@ -164,11 +215,10 @@ const Exchange = () => {
 
         {message && (
           <div
-            className={`mt-6 p-3 rounded-lg text-center text-sm font-medium border ${
-              message.toLowerCase().includes("success")
-                ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
-                : "bg-red-500/10 border-red-500/20 text-red-400"
-            }`}
+            className={`mt-6 p-3 rounded-lg text-center text-sm font-medium border ${message.toLowerCase().includes("success")
+              ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+              : "bg-red-500/10 border-red-500/20 text-red-400"
+              }`}
           >
             {message}
           </div>

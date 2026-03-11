@@ -39,7 +39,7 @@ public class ExchangeService {
 
         if (connected) {
             System.out.println("Exchange connected → real sync (not implemented)");
-            return syncMockHoldings(user); 
+            return holdingRepository.findByUser(user);
         } else {
             System.out.println("Exchange not connected → mock sync");
             return syncMockHoldings(user);
@@ -70,7 +70,7 @@ public class ExchangeService {
             Holding holding = holdingRepository
                     .findByUserAndAssetName(user, coin)
                     .orElse(new Holding());
-                    
+
             holding.setUser(user);
             holding.setAssetName(coin);
             holding.setQuantity(quantity);

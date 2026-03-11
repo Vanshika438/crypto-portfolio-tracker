@@ -125,7 +125,17 @@ public class CryptoPriceService {
 
         Map<String, Object> priceData = prices.get(coinId);
 
-        return new BigDecimal(priceData.get("inr").toString());
+        if (priceData == null || priceData.get("inr") == null) {
+            System.out.println("Price missing for: " + assetName + " (" + coinId + ")");
+            return BigDecimal.ZERO;
+        }
+
+        try {
+            return new BigDecimal(priceData.get("inr").toString());
+        } catch (Exception e) {
+            System.out.println("Price parsing error for: " + assetName);
+            return BigDecimal.ZERO;
+        }
     }
 
     /**
@@ -152,7 +162,8 @@ public class CryptoPriceService {
      */
     private String mapToCoinGeckoId(String symbol) {
 
-        if (symbol == null) return null;
+        if (symbol == null)
+            return null;
 
         return switch (symbol.toUpperCase()) {
             case "BTC", "BITCOIN" -> "bitcoin";
@@ -165,6 +176,12 @@ public class CryptoPriceService {
             case "DOGE", "DOGECOIN" -> "dogecoin";
             case "DOT", "POLKADOT" -> "polkadot";
             case "MATIC", "POLYGON" -> "matic-network";
+            case "LINK", "CHAINLINK" -> "chainlink";
+            case "ATOM", "COSMOS" -> "cosmos";
+            case "UNI", "UNISWAP" -> "uniswap";
+            case "TRX", "TRON" -> "tron";
+            case "LTC", "LITECOIN" -> "litecoin";
+            case "AVAX", "AVALANCHE" -> "avalanche-2";
             default -> symbol.toLowerCase();
         };
     }

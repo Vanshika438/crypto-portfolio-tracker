@@ -19,6 +19,7 @@ import java.math.RoundingMode;
 import java.security.CryptoPrimitive;
 import java.util.*;
 
+
 @RestController
 @RequestMapping("/api/holding")
 @CrossOrigin
@@ -103,6 +104,7 @@ public class HoldingController {
                         ;
 
                         Map<String, Object> data = new HashMap<>();
+                        data.put("id", p.getId());
                         data.put("assetName", p.getAssetName());
                         data.put("quantity", p.getQuantity());
                         data.put("buyPrice", p.getBuyPrice());
@@ -203,4 +205,5 @@ public class HoldingController {
                 return userRepository.findByEmail(email)
                                 .orElseThrow(() -> new RuntimeException("User not found"));
         }
+
 }
