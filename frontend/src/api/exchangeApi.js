@@ -41,7 +41,6 @@ export const syncExchange = async (exchangeId) => {
   return response.data;
 };
 
-// Optional (recommended)
 export const disconnectExchange = async (exchangeId) => {
   const response = await axios.delete(`/exchange/${exchangeId}`, {
     headers: {
