@@ -40,6 +40,10 @@ export const syncExchange = async (exchangeId) => {
 
   return response.data;
 };
+export const getConnectedExchanges = async () => {
+  const response = await axios.get("/exchange/connected");
+  return response.data;
+};
 
 export const disconnectExchange = async (exchangeId) => {
   const response = await axios.delete(`/exchange/${exchangeId}`, {

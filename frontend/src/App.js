@@ -8,6 +8,9 @@ import RiskAlerts from "./pages/RiskAlerts";
 import Navbar from "./components/Navbar";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Exchange from "./pages/Exchange";
+import Trades from "./pages/Trades";
+import Report from "./pages/Report";
+
 import "./App.css";
 function App() {
   return (
@@ -52,15 +55,31 @@ function App() {
           }
         />
         <Route
-        path="/risk"
+          path="/risk"
+          element={
+            <ProtectedRoute>
+              <RiskAlerts />
+            </ProtectedRoute>
+          }
+        />
+     
+      <Route
+        path="/trades"
         element={
           <ProtectedRoute>
-            <RiskAlerts />
+            <Trades />
           </ProtectedRoute>
         }
       />
-      </Routes>
-      
+      <Route
+        path="/report"
+        element={
+          <ProtectedRoute>
+            <Report />
+          </ProtectedRoute>
+        }
+      />
+       </Routes>
     </>
   );
 }

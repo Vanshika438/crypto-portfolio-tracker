@@ -37,7 +37,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/user/**").authenticated()
                         .requestMatchers("/api/holding/**").authenticated()
                         .requestMatchers("/api/exchange/**").authenticated()
-                        .requestMatchers("/api/risk/**").authenticated()  // ✅ fixed slash
+                        .requestMatchers("/api/risk/**").authenticated()
+                        .requestMatchers("/api/trades/**").authenticated()
+                        .requestMatchers("/api/report/**").authenticated()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 

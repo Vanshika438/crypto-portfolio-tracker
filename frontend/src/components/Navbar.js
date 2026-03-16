@@ -61,6 +61,12 @@ const Navbar = () => {
             <Link to="/profile" className={linkClasses("/profile")}>
               Profile
             </Link>
+            <Link to="/trades" className={linkClasses("/trades")}>
+              Trades
+            </Link>
+            <Link to="/report" className={linkClasses("/report")}>
+              Reports
+            </Link>
             <Link to="/exchange" className={linkClasses("/exchange")}>
               Connect Exchange
             </Link>
@@ -106,19 +112,25 @@ const Navbar = () => {
           <Link to="/profile" className={linkClasses("/profile")}>
             Profile
           </Link>
+          <Link to="/trades" className={linkClasses("/trades")}>
+            Trades
+          </Link>
+          <Link to="/report" className={linkClasses("/report")}>
+            Reports
+          </Link>
           <Link to="/exchange" className={linkClasses("/exchange")}>
             Connect Exchange
           </Link>
-           <Link to="/risk" className={linkClasses("/risk")}>
-              <span className="relative">
-                Risk Alerts
-                {unreadAlerts > 0 && (
-                  <span className="absolute -top-2 -right-3 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
-                    {unreadAlerts > 9 ? "9+" : unreadAlerts}
-                  </span>
-                )}
-              </span>
-            </Link>
+          <Link to="/risk" className={linkClasses("/risk")}>
+            <span className="relative">
+              Risk Alerts
+              {unreadAlerts > 0 && (
+                <span className="absolute -top-2 -right-3 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
+                  {unreadAlerts > 9 ? "9+" : unreadAlerts}
+                </span>
+              )}
+            </span>
+          </Link>
           <button
             onClick={handleLogout}
             className="w-full mt-2 px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-500 to-violet-500 text-white font-semibold"

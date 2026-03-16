@@ -26,7 +26,13 @@ public class DataInitializer {
             binance.setBaseUrl("https://api.binance.com");
             binance.setCreatedAt(LocalDateTime.now());
             exchangeRepository.save(binance);
+        } else {
+            exchangeRepository.findByName("Binance").ifPresent(b -> {
+                if (!b.getBaseUrl().equals("https://api.binance.com")) {
+                    b.setBaseUrl("https://api.binance.com");
+                    exchangeRepository.save(b);
+                }
+            });
         }
     }
 }
-
