@@ -2,10 +2,10 @@ package com.blockfoliox.backend.controller;
 
 import com.blockfoliox.backend.model.User;
 import com.blockfoliox.backend.repository.UserRepository;
-import com.blockfoliox.backend.security.JwtUtil;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.Map;
 
 @RestController
@@ -14,32 +14,22 @@ import java.util.Map;
 public class UserController {
 
     private final UserRepository userRepository;
-    private final JwtUtil jwtUtil;
 
-    public UserController(UserRepository userRepository, JwtUtil jwtUtil) {
+    public UserController(UserRepository userRepository) {
         this.userRepository = userRepository;
-        this.jwtUtil = jwtUtil;
     }
 
     @GetMapping("/me")
-    public Map<String, Object> getLoggedInUser(
-            @RequestHeader("Authorization") String authHeader) {
+    public ResponseEntity<?> getLoggedInUser(Authentication auth) {
 
-        // Remove "Bearer "
-        String token = authHeader.substring(7);
-
-        String email = jwtUtil.extractEmail(token);
-
-        User user = userRepository.findByEmail(email)
+        User user = userRepository.findByEmail(auth.getName())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // Response without password
-        Map<String, Object> response = new HashMap<>();
-        response.put("id", user.getId());
-        response.put("name", user.getName());
-        response.put("email", user.getEmail());
-        response.put("createdAt", user.getCreatedAt());
-
-        return response;
+        return ResponseEntity.ok(Map.of(
+                "id",        user.getId(),
+                "name",      user.getName(),
+                "email",     user.getEmail(),
+                "createdAt", user.getCreatedAt()
+        ));
     }
 }

@@ -5,7 +5,6 @@ import com.blockfoliox.backend.model.Holding;
 import com.blockfoliox.backend.model.User;
 import com.blockfoliox.backend.repository.ApiKeyRepository;
 import com.blockfoliox.backend.repository.HoldingRepository;
-import com.blockfoliox.backend.service.CryptoPriceService;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

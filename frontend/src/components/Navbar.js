@@ -1,13 +1,31 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { getUnreadCount } from "../api/riskApi";
 
 const Navbar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [unreadAlerts, setUnreadAlerts] = useState(0);
 
+  useEffect(() => {
+    if (user) {
+      getUnreadCount()
+        .then((res) => setUnreadAlerts(res.data.unread))
+        .catch(() => {});
+
+      // Refresh count every 5 minutes
+      const interval = setInterval(() => {
+        getUnreadCount()
+          .then((res) => setUnreadAlerts(res.data.unread))
+          .catch(() => {});
+      }, 300000);
+
+      return () => clearInterval(interval);
+    }
+  }, [user]);
   const handleLogout = () => {
     logout();
     navigate("/");
@@ -23,7 +41,6 @@ const Navbar = () => {
   return (
     <nav className="bg-slate-950/90 backdrop-blur-lg border-b border-slate-800">
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-
         {/* Logo */}
         <div
           onClick={() => navigate("/")}
@@ -47,7 +64,16 @@ const Navbar = () => {
             <Link to="/exchange" className={linkClasses("/exchange")}>
               Connect Exchange
             </Link>
-
+            <Link to="/risk" className={linkClasses("/risk")}>
+              <span className="relative">
+                Risk Alerts
+                {unreadAlerts > 0 && (
+                  <span className="absolute -top-2 -right-3 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
+                    {unreadAlerts > 9 ? "9+" : unreadAlerts}
+                  </span>
+                )}
+              </span>
+            </Link>
             <button
               onClick={handleLogout}
               className="ml-3 px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 text-white font-semibold transition shadow-md"
@@ -83,7 +109,16 @@ const Navbar = () => {
           <Link to="/exchange" className={linkClasses("/exchange")}>
             Connect Exchange
           </Link>
-
+           <Link to="/risk" className={linkClasses("/risk")}>
+              <span className="relative">
+                Risk Alerts
+                {unreadAlerts > 0 && (
+                  <span className="absolute -top-2 -right-3 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
+                    {unreadAlerts > 9 ? "9+" : unreadAlerts}
+                  </span>
+                )}
+              </span>
+            </Link>
           <button
             onClick={handleLogout}
             className="w-full mt-2 px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-500 to-violet-500 text-white font-semibold"

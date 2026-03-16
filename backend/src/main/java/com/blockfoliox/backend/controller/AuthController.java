@@ -2,14 +2,12 @@ package com.blockfoliox.backend.controller;
 
 import com.blockfoliox.backend.model.User;
 import com.blockfoliox.backend.repository.UserRepository;
+import jakarta.validation.Valid;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
-
 import com.blockfoliox.backend.security.JwtUtil;
-import java.util.HashMap;
-import java.util.Map;
-
-import java.util.Optional;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -21,56 +19,32 @@ public class AuthController {
     private final JwtUtil jwtUtil;
 
     public AuthController(UserRepository userRepository,
-            JwtUtil jwtUtil,
-            BCryptPasswordEncoder passwordEncoder) {
+            JwtUtil jwtUtil, BCryptPasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.jwtUtil = jwtUtil;
         this.passwordEncoder = passwordEncoder;
     }
 
     @PostMapping("/register")
-    public Map<String, String> register(@RequestBody User user) {
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
+    public ResponseEntity<?> register(@Valid @RequestBody User user) {
         if (userRepository.existsByEmail(user.getEmail())) {
-            throw new RuntimeException("Email already registered");
+            return ResponseEntity.badRequest()
+                .body(Map.of("error", "Email already registered"));
         }
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
         userRepository.save(user);
         String token = jwtUtil.generateToken(user.getEmail());
-
-        Map<String, String> response = new HashMap<>();
-        response.put("token", token);
-        response.put("email", user.getEmail());
-
-        return response;
+        return ResponseEntity.ok(Map.of("token", token, "email", user.getEmail()));
     }
 
     @PostMapping("/login")
-    public Map<String, String> login(@RequestBody User loginUser) {
-
-        Optional<User> optionalUser = userRepository.findByEmail(loginUser.getEmail());
-
-        if (optionalUser.isEmpty()) {
-            throw new RuntimeException("Invalid Email or Password");
-        }
-
-        User user = optionalUser.get();
-
+    public ResponseEntity<?> login(@RequestBody User loginUser) {
+        User user = userRepository.findByEmail(loginUser.getEmail())
+            .orElseThrow(() -> new RuntimeException("Invalid email or password"));
         if (!passwordEncoder.matches(loginUser.getPassword(), user.getPassword())) {
-            throw new RuntimeException("Invalid Email or Password");
+            throw new RuntimeException("Invalid email or password");
         }
-
         String token = jwtUtil.generateToken(user.getEmail());
-
-        Map<String, String> response = new HashMap<>();
-        response.put("token", token);
-        response.put("email", user.getEmail());
-
-        return response;
+        return ResponseEntity.ok(Map.of("token", token, "email", user.getEmail()));
     }
-
-    @GetMapping("/test")
-    public String test() {
-        return "Test is Working";
-    }
-
 }

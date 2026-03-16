@@ -16,9 +16,7 @@ import jakarta.servlet.http.HttpServletRequest;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.security.CryptoPrimitive;
 import java.util.*;
-
 
 @RestController
 @RequestMapping("/api/holding")
@@ -46,14 +44,14 @@ public class HoldingController {
         }
 
         @PostMapping("/add")
-        public Holding addAsset(
+        public ResponseEntity<Holding> addAsset(
                         @RequestBody Holding holding,
-                        @RequestHeader("Authorization") String authHeader) {
+                        org.springframework.security.core.Authentication auth) {
 
-                User user = getUserFromToken(authHeader);
+                User user = userRepository.findByEmail(auth.getName())
+                                .orElseThrow(() -> new RuntimeException("User not found"));
                 holding.setUser(user);
-
-                return holdingRepository.save(holding);
+                return ResponseEntity.ok(holdingRepository.save(holding));
         }
 
         @GetMapping("/my")
