@@ -9,7 +9,7 @@ import {
   FileText,
 } from "lucide-react";
 import { getReportSummary, downloadCsv } from "../api/reportApi";
-
+import { SkeletonCard ,SkeletonTable } from "../components/Skeleton";
 const Report = () => {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -66,11 +66,9 @@ const Report = () => {
     }).format(v || 0);
 
   // ✅ Helper — show N/A if price is zero (unlisted coin)
-  const displayPriceINR = (v) =>
-    parseFloat(v) === 0 ? "N/A" : formatINR(v);
+  const displayPriceINR = (v) => (parseFloat(v) === 0 ? "N/A" : formatINR(v));
 
-  const displayPriceUSD = (v) =>
-    parseFloat(v) === 0 ? "N/A" : formatUSD(v);
+  const displayPriceUSD = (v) => (parseFloat(v) === 0 ? "N/A" : formatUSD(v));
 
   const handlePdf = () => {
     const printWindow = window.open("", "_blank");
@@ -81,8 +79,14 @@ const Report = () => {
         const gain = parseFloat(row.unrealizedGainInr);
         const color = gain >= 0 ? "#16a34a" : "#dc2626";
         // ✅ N/A for unlisted coins in PDF
-        const priceInr = parseFloat(row.currentPriceInr) === 0 ? "N/A" : formatINR(row.currentPriceInr);
-        const priceUsd = parseFloat(row.currentPriceUsd) === 0 ? "N/A" : formatUSD(row.currentPriceUsd);
+        const priceInr =
+          parseFloat(row.currentPriceInr) === 0
+            ? "N/A"
+            : formatINR(row.currentPriceInr);
+        const priceUsd =
+          parseFloat(row.currentPriceUsd) === 0
+            ? "N/A"
+            : formatUSD(row.currentPriceUsd);
         return `
         <tr>
           <td style="font-weight:600">${row.symbol}</td>
@@ -112,7 +116,8 @@ const Report = () => {
       .join("");
 
     const noRealized =
-      realizedBreakdown.filter((r) => parseFloat(r.realizedGainInr) !== 0).length === 0
+      realizedBreakdown.filter((r) => parseFloat(r.realizedGainInr) !== 0)
+        .length === 0
         ? `<tr><td colspan="3" style="text-align:center;color:#94a3b8;padding:20px">No realized gains yet.</td></tr>`
         : realizedRows;
 
@@ -232,9 +237,17 @@ const Report = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center text-slate-400">
-        <RefreshCcw className="animate-spin mr-2" size={18} />
-        Loading report...
+      <div className="min-h-screen bg-slate-900 text-slate-200 px-4 py-8">
+        <div className="max-w-6xl mx-auto">
+          <div className="animate-pulse bg-slate-800 rounded-lg h-7 w-32 mb-8" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+            {[...Array(4)].map((_, i) => (
+              <SkeletonCard key={i} />
+            ))}
+          </div>
+          <div className="animate-pulse bg-slate-800 rounded-lg h-5 w-48 mb-4" />
+          <SkeletonTable rows={8} />
+        </div>
       </div>
     );
   }
@@ -256,7 +269,6 @@ const Report = () => {
   return (
     <div className="min-h-screen bg-slate-900 text-slate-200 px-4 py-8">
       <div className="max-w-6xl mx-auto">
-
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
@@ -314,18 +326,26 @@ const Report = () => {
             title="Unrealized Gain"
             inr={formatINR(unrealizedInr)}
             usd={formatUSD(unrealizedUsd)}
-            icon={unrealizedInr >= 0
-              ? <TrendingUp size={18} className="text-emerald-400" />
-              : <TrendingDown size={18} className="text-red-400" />}
+            icon={
+              unrealizedInr >= 0 ? (
+                <TrendingUp size={18} className="text-emerald-400" />
+              ) : (
+                <TrendingDown size={18} className="text-red-400" />
+              )
+            }
             positive={unrealizedInr >= 0}
           />
           <SummaryCard
             title="Realized Gain"
             inr={formatINR(realizedInr)}
             usd={formatUSD(realizedUsd)}
-            icon={realizedInr >= 0
-              ? <TrendingUp size={18} className="text-emerald-400" />
-              : <TrendingDown size={18} className="text-red-400" />}
+            icon={
+              realizedInr >= 0 ? (
+                <TrendingUp size={18} className="text-emerald-400" />
+              ) : (
+                <TrendingDown size={18} className="text-red-400" />
+              )
+            }
             positive={realizedInr >= 0}
           />
         </div>
@@ -345,8 +365,12 @@ const Report = () => {
                     <th className="px-4 py-3">Symbol</th>
                     <th className="px-4 py-3 text-right">Quantity</th>
                     <th className="px-4 py-3 text-right">Avg Cost (INR)</th>
-                    <th className="px-4 py-3 text-right">Current Price (INR)</th>
-                    <th className="px-4 py-3 text-right">Current Price (USD)</th>
+                    <th className="px-4 py-3 text-right">
+                      Current Price (INR)
+                    </th>
+                    <th className="px-4 py-3 text-right">
+                      Current Price (USD)
+                    </th>
                     <th className="px-4 py-3 text-right">Gain (INR)</th>
                     <th className="px-4 py-3 text-right">Gain (USD)</th>
                     <th className="px-4 py-3 text-right">Gain %</th>
@@ -356,9 +380,13 @@ const Report = () => {
                   {unrealizedBreakdown.map((row) => {
                     const gain = parseFloat(row.unrealizedGainInr);
                     return (
-                      <tr key={row.symbol}
-                        className="border-b border-slate-800/60 hover:bg-slate-800/30">
-                        <td className="px-4 py-3 font-bold text-white">{row.symbol}</td>
+                      <tr
+                        key={row.symbol}
+                        className="border-b border-slate-800/60 hover:bg-slate-800/30"
+                      >
+                        <td className="px-4 py-3 font-bold text-white">
+                          {row.symbol}
+                        </td>
                         <td className="px-4 py-3 text-right text-slate-300">
                           {parseFloat(row.quantity).toFixed(4)}
                         </td>
@@ -372,17 +400,29 @@ const Report = () => {
                         <td className="px-4 py-3 text-right text-slate-400">
                           {displayPriceUSD(row.currentPriceUsd)}
                         </td>
-                        <td className={`px-4 py-3 text-right font-semibold ${
-                          gain >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                          {gain >= 0 ? "+" : ""}{formatINR(gain)}
+                        <td
+                          className={`px-4 py-3 text-right font-semibold ${
+                            gain >= 0 ? "text-emerald-400" : "text-red-400"
+                          }`}
+                        >
+                          {gain >= 0 ? "+" : ""}
+                          {formatINR(gain)}
                         </td>
-                        <td className={`px-4 py-3 text-right ${
-                          gain >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                          {gain >= 0 ? "+" : ""}{formatUSD(row.unrealizedGainUsd)}
+                        <td
+                          className={`px-4 py-3 text-right ${
+                            gain >= 0 ? "text-emerald-400" : "text-red-400"
+                          }`}
+                        >
+                          {gain >= 0 ? "+" : ""}
+                          {formatUSD(row.unrealizedGainUsd)}
                         </td>
-                        <td className={`px-4 py-3 text-right font-semibold ${
-                          gain >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                          {gain >= 0 ? "+" : ""}{parseFloat(row.gainPercent).toFixed(2)}%
+                        <td
+                          className={`px-4 py-3 text-right font-semibold ${
+                            gain >= 0 ? "text-emerald-400" : "text-red-400"
+                          }`}
+                        >
+                          {gain >= 0 ? "+" : ""}
+                          {parseFloat(row.gainPercent).toFixed(2)}%
                         </td>
                       </tr>
                     );
@@ -398,7 +438,8 @@ const Report = () => {
           <h3 className="text-lg font-bold text-white mb-4">
             Realized Gains — FIFO Calculation
           </h3>
-          {realizedBreakdown.filter((r) => parseFloat(r.realizedGainInr) !== 0).length === 0 ? (
+          {realizedBreakdown.filter((r) => parseFloat(r.realizedGainInr) !== 0)
+            .length === 0 ? (
             <p className="text-slate-500 text-sm">
               No realized gains yet. Add sell trades to see FIFO calculations.
             </p>
@@ -408,8 +449,12 @@ const Report = () => {
                 <thead className="text-slate-400 text-xs font-semibold border-y border-slate-800/60 bg-slate-900/40">
                   <tr>
                     <th className="px-4 py-3">Symbol</th>
-                    <th className="px-4 py-3 text-right">Realized Gain (INR)</th>
-                    <th className="px-4 py-3 text-right">Realized Gain (USD)</th>
+                    <th className="px-4 py-3 text-right">
+                      Realized Gain (INR)
+                    </th>
+                    <th className="px-4 py-3 text-right">
+                      Realized Gain (USD)
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -418,16 +463,28 @@ const Report = () => {
                     .map((row) => {
                       const gain = parseFloat(row.realizedGainInr);
                       return (
-                        <tr key={row.symbol}
-                          className="border-b border-slate-800/60 hover:bg-slate-800/30">
-                          <td className="px-4 py-3 font-bold text-white">{row.symbol}</td>
-                          <td className={`px-4 py-3 text-right font-semibold ${
-                            gain >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                            {gain >= 0 ? "+" : ""}{formatINR(gain)}
+                        <tr
+                          key={row.symbol}
+                          className="border-b border-slate-800/60 hover:bg-slate-800/30"
+                        >
+                          <td className="px-4 py-3 font-bold text-white">
+                            {row.symbol}
                           </td>
-                          <td className={`px-4 py-3 text-right ${
-                            gain >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                            {gain >= 0 ? "+" : ""}{formatUSD(row.realizedGainUsd)}
+                          <td
+                            className={`px-4 py-3 text-right font-semibold ${
+                              gain >= 0 ? "text-emerald-400" : "text-red-400"
+                            }`}
+                          >
+                            {gain >= 0 ? "+" : ""}
+                            {formatINR(gain)}
+                          </td>
+                          <td
+                            className={`px-4 py-3 text-right ${
+                              gain >= 0 ? "text-emerald-400" : "text-red-400"
+                            }`}
+                          >
+                            {gain >= 0 ? "+" : ""}
+                            {formatUSD(row.realizedGainUsd)}
                           </td>
                         </tr>
                       );
@@ -437,25 +494,34 @@ const Report = () => {
             </div>
           )}
         </div>
-
       </div>
     </div>
   );
 };
 
 const SummaryCard = ({ title, inr, usd, icon, positive, neutral }) => (
-  <div className={`p-5 rounded-xl border ${
-    neutral ? "bg-slate-800/40 border-slate-700/50"
-    : positive ? "bg-emerald-900/10 border-emerald-800/40"
-    : "bg-red-900/10 border-red-800/40"
-  }`}>
+  <div
+    className={`p-5 rounded-xl border ${
+      neutral
+        ? "bg-slate-800/40 border-slate-700/50"
+        : positive
+          ? "bg-emerald-900/10 border-emerald-800/40"
+          : "bg-red-900/10 border-red-800/40"
+    }`}
+  >
     <div className="flex items-center justify-between mb-3">
-      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{title}</p>
+      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+        {title}
+      </p>
       {icon}
     </div>
-    <p className={`text-xl font-bold ${
-      neutral ? "text-white" : positive ? "text-emerald-400" : "text-red-400"
-    }`}>{inr}</p>
+    <p
+      className={`text-xl font-bold ${
+        neutral ? "text-white" : positive ? "text-emerald-400" : "text-red-400"
+      }`}
+    >
+      {inr}
+    </p>
     <p className="text-sm text-slate-500 mt-0.5">{usd}</p>
   </div>
 );

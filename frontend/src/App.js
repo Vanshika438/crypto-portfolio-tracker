@@ -10,7 +10,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Exchange from "./pages/Exchange";
 import Trades from "./pages/Trades";
 import Report from "./pages/Report";
-
+import Portfolio from "./pages/Portfolio";
 import "./App.css";
 function App() {
   return (
@@ -62,24 +62,32 @@ function App() {
             </ProtectedRoute>
           }
         />
-     
-      <Route
-        path="/trades"
-        element={
-          <ProtectedRoute>
-            <Trades />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/report"
-        element={
-          <ProtectedRoute>
-            <Report />
-          </ProtectedRoute>
-        }
-      />
-       </Routes>
+
+        <Route
+          path="/trades"
+          element={
+            <ProtectedRoute>
+              <Trades />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/report"
+          element={
+            <ProtectedRoute>
+              <Report />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/portfolio"
+          element={
+            <ProtectedRoute>
+              <Portfolio />
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
     </>
   );
 }

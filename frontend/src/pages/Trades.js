@@ -1,13 +1,21 @@
 import React, { useEffect, useState } from "react";
 import {
-  Plus, Trash2, Edit2, RefreshCcw,
-  TrendingUp, TrendingDown, ArrowUpDown
+  Plus,
+  Trash2,
+  Edit2,
+  RefreshCcw,
+  TrendingUp,
+  TrendingDown,
+  ArrowUpDown,
 } from "lucide-react";
 import {
-  getTrades, addTrade, updateTrade,
-  deleteTrade, syncBinanceTrades
+  getTrades,
+  addTrade,
+  updateTrade,
+  deleteTrade,
+  syncBinanceTrades,
 } from "../api/tradeApi";
-
+import { SkeletonTable } from "../components/Skeleton";
 const EMPTY_FORM = {
   assetSymbol: "",
   type: "BUY",
@@ -22,16 +30,18 @@ const EMPTY_FORM = {
 };
 
 const Trades = () => {
-  const [trades, setTrades]       = useState([]);
-  const [loading, setLoading]     = useState(true);
-  const [syncing, setSyncing]     = useState(false);
-  const [showForm, setShowForm]   = useState(false);
+  const [trades, setTrades] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+  const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [form, setForm]           = useState(EMPTY_FORM);
-  const [filter, setFilter]       = useState("ALL");
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [filter, setFilter] = useState("ALL");
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => { fetchTrades(); }, []);
+  useEffect(() => {
+    fetchTrades();
+  }, []);
 
   const fetchTrades = async () => {
     setLoading(true);
@@ -54,8 +64,8 @@ const Trades = () => {
         quantity: parseFloat(form.quantity),
         priceInr: parseFloat(form.priceInr),
         priceUsd: parseFloat(form.priceUsd),
-        feeInr:   form.feeInr   ? parseFloat(form.feeInr)   : 0,
-        feeUsd:   form.feeUsd   ? parseFloat(form.feeUsd)   : 0,
+        feeInr: form.feeInr ? parseFloat(form.feeInr) : 0,
+        feeUsd: form.feeUsd ? parseFloat(form.feeUsd) : 0,
         executedAt: form.executedAt + ":00",
       };
 
@@ -80,15 +90,15 @@ const Trades = () => {
   const handleEdit = (trade) => {
     setForm({
       assetSymbol: trade.assetSymbol,
-      type:        trade.type,
-      quantity:    trade.quantity,
-      priceInr:    trade.priceInr,
-      priceUsd:    trade.priceUsd,
-      feeInr:      trade.feeInr   || "",
-      feeUsd:      trade.feeUsd   || "",
-      exchange:    trade.exchange  || "",
-      notes:       trade.notes     || "",
-      executedAt:  trade.executedAt?.slice(0, 16) || "",
+      type: trade.type,
+      quantity: trade.quantity,
+      priceInr: trade.priceInr,
+      priceUsd: trade.priceUsd,
+      feeInr: trade.feeInr || "",
+      feeUsd: trade.feeUsd || "",
+      exchange: trade.exchange || "",
+      notes: trade.notes || "",
+      executedAt: trade.executedAt?.slice(0, 16) || "",
     });
     setEditingId(trade.id);
     setShowForm(true);
@@ -112,28 +122,48 @@ const Trades = () => {
       alert(res.data.message);
       fetchTrades();
     } catch (err) {
-      alert(err.response?.data?.error || "Binance sync failed. Check your API keys.");
+      alert(
+        err.response?.data?.error ||
+          "Binance sync failed. Check your API keys.",
+      );
     } finally {
       setSyncing(false);
     }
   };
 
   const formatINR = (v) =>
-    new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR",
-      maximumFractionDigits: 2 }).format(v || 0);
+    new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 2,
+    }).format(v || 0);
 
   const formatUSD = (v) =>
-    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD",
-      maximumFractionDigits: 2 }).format(v || 0);
+    new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: 2,
+    }).format(v || 0);
 
-  const filtered = filter === "ALL" ? trades
-    : trades.filter((t) => t.type === filter);
+  const filtered =
+    filter === "ALL" ? trades : trades.filter((t) => t.type === filter);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center text-slate-400">
-        <RefreshCcw className="animate-spin mr-2" size={18} />
-        Loading trades...
+      <div className="min-h-screen bg-slate-900 text-slate-200 px-4 py-8">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <div className="animate-pulse bg-slate-800 rounded-lg h-7 w-40 mb-2" />
+              <div className="animate-pulse bg-slate-800 rounded-lg h-4 w-24" />
+            </div>
+            <div className="flex gap-3">
+              <div className="animate-pulse bg-slate-800 rounded-lg h-9 w-32" />
+              <div className="animate-pulse bg-slate-800 rounded-lg h-9 w-28" />
+            </div>
+          </div>
+          <SkeletonTable rows={8} />
+        </div>
       </div>
     );
   }
@@ -141,7 +171,6 @@ const Trades = () => {
   return (
     <div className="min-h-screen bg-slate-900 text-slate-200 px-4 py-8">
       <div className="max-w-6xl mx-auto">
-
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
@@ -163,7 +192,11 @@ const Trades = () => {
               {syncing ? "Syncing..." : "Sync Binance"}
             </button>
             <button
-              onClick={() => { setShowForm(!showForm); setEditingId(null); setForm(EMPTY_FORM); }}
+              onClick={() => {
+                setShowForm(!showForm);
+                setEditingId(null);
+                setForm(EMPTY_FORM);
+              }}
               className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition"
             >
               <Plus size={15} />
@@ -180,21 +213,29 @@ const Trades = () => {
             </h3>
             <form onSubmit={handleSubmit}>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-
                 <div>
-                  <label className="text-xs text-slate-400 mb-1 block">Symbol *</label>
+                  <label className="text-xs text-slate-400 mb-1 block">
+                    Symbol *
+                  </label>
                   <input
                     type="text"
                     placeholder="e.g. BTC"
                     value={form.assetSymbol}
-                    onChange={(e) => setForm({ ...form, assetSymbol: e.target.value.toUpperCase() })}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        assetSymbol: e.target.value.toUpperCase(),
+                      })
+                    }
                     className="w-full px-4 py-2.5 rounded-lg bg-slate-900/80 text-white border border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs text-slate-400 mb-1 block">Type *</label>
+                  <label className="text-xs text-slate-400 mb-1 block">
+                    Type *
+                  </label>
                   <select
                     value={form.type}
                     onChange={(e) => setForm({ ...form, type: e.target.value })}
@@ -206,92 +247,129 @@ const Trades = () => {
                 </div>
 
                 <div>
-                  <label className="text-xs text-slate-400 mb-1 block">Quantity *</label>
+                  <label className="text-xs text-slate-400 mb-1 block">
+                    Quantity *
+                  </label>
                   <input
-                    type="number" step="any"
+                    type="number"
+                    step="any"
                     placeholder="0.00"
                     value={form.quantity}
-                    onChange={(e) => setForm({ ...form, quantity: e.target.value })}
+                    onChange={(e) =>
+                      setForm({ ...form, quantity: e.target.value })
+                    }
                     className="w-full px-4 py-2.5 rounded-lg bg-slate-900/80 text-white border border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs text-slate-400 mb-1 block">Price (INR) *</label>
+                  <label className="text-xs text-slate-400 mb-1 block">
+                    Price (INR) *
+                  </label>
                   <input
-                    type="number" step="any"
+                    type="number"
+                    step="any"
                     placeholder="₹0.00"
                     value={form.priceInr}
-                    onChange={(e) => setForm({ ...form, priceInr: e.target.value })}
+                    onChange={(e) =>
+                      setForm({ ...form, priceInr: e.target.value })
+                    }
                     className="w-full px-4 py-2.5 rounded-lg bg-slate-900/80 text-white border border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs text-slate-400 mb-1 block">Price (USD) *</label>
+                  <label className="text-xs text-slate-400 mb-1 block">
+                    Price (USD) *
+                  </label>
                   <input
-                    type="number" step="any"
+                    type="number"
+                    step="any"
                     placeholder="$0.00"
                     value={form.priceUsd}
-                    onChange={(e) => setForm({ ...form, priceUsd: e.target.value })}
+                    onChange={(e) =>
+                      setForm({ ...form, priceUsd: e.target.value })
+                    }
                     className="w-full px-4 py-2.5 rounded-lg bg-slate-900/80 text-white border border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs text-slate-400 mb-1 block">Date & Time *</label>
+                  <label className="text-xs text-slate-400 mb-1 block">
+                    Date & Time *
+                  </label>
                   <input
                     type="datetime-local"
                     value={form.executedAt}
-                    onChange={(e) => setForm({ ...form, executedAt: e.target.value })}
+                    onChange={(e) =>
+                      setForm({ ...form, executedAt: e.target.value })
+                    }
                     className="w-full px-4 py-2.5 rounded-lg bg-slate-900/80 text-white border border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs text-slate-400 mb-1 block">Fee (INR)</label>
+                  <label className="text-xs text-slate-400 mb-1 block">
+                    Fee (INR)
+                  </label>
                   <input
-                    type="number" step="any"
+                    type="number"
+                    step="any"
                     placeholder="₹0.00"
                     value={form.feeInr}
-                    onChange={(e) => setForm({ ...form, feeInr: e.target.value })}
+                    onChange={(e) =>
+                      setForm({ ...form, feeInr: e.target.value })
+                    }
                     className="w-full px-4 py-2.5 rounded-lg bg-slate-900/80 text-white border border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs text-slate-400 mb-1 block">Fee (USD)</label>
+                  <label className="text-xs text-slate-400 mb-1 block">
+                    Fee (USD)
+                  </label>
                   <input
-                    type="number" step="any"
+                    type="number"
+                    step="any"
                     placeholder="$0.00"
                     value={form.feeUsd}
-                    onChange={(e) => setForm({ ...form, feeUsd: e.target.value })}
+                    onChange={(e) =>
+                      setForm({ ...form, feeUsd: e.target.value })
+                    }
                     className="w-full px-4 py-2.5 rounded-lg bg-slate-900/80 text-white border border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs text-slate-400 mb-1 block">Exchange</label>
+                  <label className="text-xs text-slate-400 mb-1 block">
+                    Exchange
+                  </label>
                   <input
                     type="text"
                     placeholder="e.g. Binance"
                     value={form.exchange}
-                    onChange={(e) => setForm({ ...form, exchange: e.target.value })}
+                    onChange={(e) =>
+                      setForm({ ...form, exchange: e.target.value })
+                    }
                     className="w-full px-4 py-2.5 rounded-lg bg-slate-900/80 text-white border border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
                   />
                 </div>
 
                 <div className="sm:col-span-2 lg:col-span-3">
-                  <label className="text-xs text-slate-400 mb-1 block">Notes</label>
+                  <label className="text-xs text-slate-400 mb-1 block">
+                    Notes
+                  </label>
                   <input
                     type="text"
                     placeholder="Optional note"
                     value={form.notes}
-                    onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                    onChange={(e) =>
+                      setForm({ ...form, notes: e.target.value })
+                    }
                     className="w-full px-4 py-2.5 rounded-lg bg-slate-900/80 text-white border border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
                   />
                 </div>
@@ -303,11 +381,19 @@ const Trades = () => {
                   disabled={submitting}
                   className="px-6 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold disabled:opacity-60 transition"
                 >
-                  {submitting ? "Saving..." : editingId ? "Update Trade" : "Add Trade"}
+                  {submitting
+                    ? "Saving..."
+                    : editingId
+                      ? "Update Trade"
+                      : "Add Trade"}
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setShowForm(false); setEditingId(null); setForm(EMPTY_FORM); }}
+                  onClick={() => {
+                    setShowForm(false);
+                    setEditingId(null);
+                    setForm(EMPTY_FORM);
+                  }}
                   className="px-6 py-2.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm font-semibold transition"
                 >
                   Cancel
@@ -329,10 +415,11 @@ const Trades = () => {
                   : "bg-slate-800 text-slate-400 border border-slate-700"
               }`}
             >
-              {f === "ALL" ? `All (${trades.length})`
+              {f === "ALL"
+                ? `All (${trades.length})`
                 : f === "BUY"
-                ? `Buys (${trades.filter((t) => t.type === "BUY").length})`
-                : `Sells (${trades.filter((t) => t.type === "SELL").length})`}
+                  ? `Buys (${trades.filter((t) => t.type === "BUY").length})`
+                  : `Sells (${trades.filter((t) => t.type === "SELL").length})`}
             </button>
           ))}
         </div>
@@ -342,7 +429,9 @@ const Trades = () => {
           <div className="text-center py-20 text-slate-500">
             <ArrowUpDown size={40} className="mx-auto mb-4 text-slate-700" />
             <p className="text-slate-400 font-semibold">No trades yet</p>
-            <p className="text-sm mt-1">Add your first trade or sync from Binance.</p>
+            <p className="text-sm mt-1">
+              Add your first trade or sync from Binance.
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -362,8 +451,8 @@ const Trades = () => {
               </thead>
               <tbody>
                 {filtered.map((trade) => {
-                  const isBuy     = trade.type === "BUY";
-                  const totalInr  = (trade.quantity * trade.priceInr).toFixed(2);
+                  const isBuy = trade.type === "BUY";
+                  const totalInr = (trade.quantity * trade.priceInr).toFixed(2);
 
                   return (
                     <tr
@@ -377,12 +466,18 @@ const Trades = () => {
                         {trade.assetSymbol}
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                          isBuy
-                            ? "bg-emerald-500/20 text-emerald-400"
-                            : "bg-red-500/20 text-red-400"
-                        }`}>
-                          {isBuy ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
+                        <span
+                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                            isBuy
+                              ? "bg-emerald-500/20 text-emerald-400"
+                              : "bg-red-500/20 text-red-400"
+                          }`}
+                        >
+                          {isBuy ? (
+                            <TrendingUp size={11} />
+                          ) : (
+                            <TrendingDown size={11} />
+                          )}
                           {trade.type}
                         </span>
                       </td>

@@ -1,18 +1,16 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
-import { getPortfolioSummary, getPortfolioPL, deleteAsset } from "../api/holdingApi";
+import {getPortfolioSummary,getPortfolioPL,deleteAsset,} from "../api/holdingApi";
 import { syncExchange } from "../api/exchangeApi";
 import { fetchCharts as fetchMarketCharts } from "../api/cryptoApi";
-import { Star, TrendingUp, TrendingDown, RefreshCcw, Edit2, Trash2 } from "lucide-react";
-import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
-
+import {Star,TrendingUp,TrendingDown,RefreshCcw,Edit2,Trash2,} from "lucide-react";
+import {  AreaChart,Area,ResponsiveContainer,XAxis,YAxis,Tooltip,CartesianGrid,} from "recharts";
 const Dashboard = () => {
-
   const [portfolio, setPortfolio] = useState([]);
   const [summary, setSummary] = useState({
     totalInvested: 0,
     currentValue: 0,
     totalProfitLoss: 0,
-    profitLossPercent: 0
+    profitLossPercent: 0,
   });
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -25,7 +23,6 @@ const Dashboard = () => {
   const [timeframe, setTimeframe] = useState("7D");
 
   const timeframes = ["7D"];
-
 
   const guessSymbol = (name) => {
     const map = {
@@ -46,7 +43,7 @@ const Dashboard = () => {
       dogecoin: "dogecoin",
       doge: "dogecoin",
       matic: "matic-network",
-      polygon: "matic-network"
+      polygon: "matic-network",
     };
 
     const lower = (name || "").toLowerCase().trim();
@@ -59,7 +56,7 @@ const Dashboard = () => {
     const numPoints = 168;
     const now = Date.now();
     const interval = (7 * 24 * 60 * 60 * 1000) / numPoints;
-    const startTime = now - (7 * 24 * 60 * 60 * 1000);
+    const startTime = now - 7 * 24 * 60 * 60 * 1000;
 
     const unifiedData = [];
 
@@ -84,13 +81,13 @@ const Dashboard = () => {
               closestValue = coinChart[j].value;
             }
           }
-          totalValueAtTime += (closestValue * quantity);
+          totalValueAtTime += closestValue * quantity;
         }
       });
 
       unifiedData.push({
         time: targetTime,
-        value: Number(totalValueAtTime.toFixed(2))
+        value: Number(totalValueAtTime.toFixed(2)),
       });
     }
 
@@ -105,7 +102,6 @@ const Dashboard = () => {
 
     return last >= first;
   }, [totalPortfolioData]);
-
 
   const toCoincapSymbol = (name) => {
     const map = {
@@ -125,10 +121,28 @@ const Dashboard = () => {
       solana: "sol",
       sol: "sol",
       dogecoin: "doge",
-      doge: "doge"
+      doge: "doge",
+      // ✅ Fix MATIC
+      matic: "matic",
+      polygon: "matic",
+      "matic-network": "matic",
+      polkadot: "dot",
+      dot: "dot",
+      litecoin: "ltc",
+      ltc: "ltc",
+      avalanche: "avax",
+      avax: "avax",
+      chainlink: "link",
+      link: "link",
+      cosmos: "atom",
+      atom: "atom",
+      uniswap: "uni",
+      uni: "uni",
+      tron: "trx",
+      trx: "trx",
     };
     const lower = (name || "").toLowerCase().trim();
-    return map[lower] || lower.slice(0, 4);
+    return map[lower] || lower;
   };
 
   const fetchCharts = useCallback(async (coins) => {
@@ -153,7 +167,6 @@ const Dashboard = () => {
         const marketItem = marketById[coinId];
         const rawPrices = marketItem?.sparkline_in_7d?.price ?? [];
 
-
         let multiplier = 1;
         if (rawPrices.length > 0 && marketItem?.current_price) {
           const lastSparklinePrice = rawPrices[rawPrices.length - 1];
@@ -166,7 +179,7 @@ const Dashboard = () => {
         chartData[coinId] = rawPrices
           .map((value, index) => ({
             time: now - (rawPrices.length - 1 - index) * interval,
-            value: Number((value * multiplier).toFixed(2))
+            value: Number((value * multiplier).toFixed(2)),
           }))
           .filter((point) => Number.isFinite(point.value));
 
@@ -189,7 +202,7 @@ const Dashboard = () => {
     try {
       const [summaryRes, plRes] = await Promise.all([
         getPortfolioSummary(),
-        getPortfolioPL()
+        getPortfolioPL(),
       ]);
 
       if (summaryRes?.data) {
@@ -197,7 +210,7 @@ const Dashboard = () => {
           totalInvested: summaryRes.data.totalInvested || 0,
           currentValue: summaryRes.data.currentValue || 0,
           totalProfitLoss: summaryRes.data.totalProfitLoss || 0,
-          profitLossPercent: summaryRes.data.profitLossPercent || 0
+          profitLossPercent: summaryRes.data.profitLossPercent || 0,
         });
       }
 
@@ -207,7 +220,6 @@ const Dashboard = () => {
         hasLoadedChartsRef.current = true;
       }
       setLastUpdated(new Date());
-
     } catch (err) {
       console.error("Error fetching dashboard:", err);
     } finally {
@@ -224,7 +236,7 @@ const Dashboard = () => {
     new Intl.NumberFormat("en-IN", {
       style: "currency",
       currency: "INR",
-      maximumFractionDigits: 2
+      maximumFractionDigits: 2,
     }).format(value || 0);
   const formatQuantity = (value) => {
     const num = Number(value);
@@ -234,9 +246,8 @@ const Dashboard = () => {
   const formatTooltip = (value) =>
     new Intl.NumberFormat("en-IN", {
       style: "currency",
-      currency: "INR"
+      currency: "INR",
     }).format(value);
-
 
   const [isSyncing, setIsSyncing] = useState(false);
 
@@ -254,7 +265,7 @@ const Dashboard = () => {
 
   const handleDelete = async (e, id) => {
     e.stopPropagation();
-    console.log("asset",id);
+    console.log("asset", id);
 
     if (!window.confirm("Delete this asset from portfolio?")) return;
 
@@ -283,12 +294,13 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen w-full bg-slate-900 text-slate-200">
       <div className="w-full max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-10 xl:px-16 py-8">
-
         {/* HEADER */}
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-8">
           <div>
             <h2 className="text-2xl font-bold text-white">Summary</h2>
-            <p className="text-slate-400 text-sm mt-1">Real-time market tracking</p>
+            <p className="text-slate-400 text-sm mt-1">
+              Real-time market tracking
+            </p>
           </div>
 
           <div className="flex items-center gap-4">
@@ -301,7 +313,10 @@ const Dashboard = () => {
               disabled={isRefreshing}
               className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-60 shadow-md"
             >
-              <RefreshCcw size={16} className={isRefreshing ? "animate-spin" : ""} />
+              <RefreshCcw
+                size={16}
+                className={isRefreshing ? "animate-spin" : ""}
+              />
               Refresh
             </button>
           </div>
@@ -318,25 +333,31 @@ const Dashboard = () => {
         {/* TOTAL PORTFOLIO VALUE CHART */}
 
         <div className="mb-10 bg-slate-800/40 border border-slate-700/50 rounded-xl p-6">
-
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-white">
               Total Portfolio Value
             </h3>
 
-            <div className={`text-sm font-semibold ${portfolioTrendPositive ? "text-emerald-400" : "text-red-400"
-              }`}>
+            <div
+              className={`text-sm font-semibold ${
+                portfolioTrendPositive ? "text-emerald-400" : "text-red-400"
+              }`}
+            >
               {portfolioTrendPositive ? "▲ 7D Growth" : "▼ 7D Decline"}
             </div>
           </div>
 
           <div className="h-40 w-full">
-
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={totalPortfolioData}>
-
                 <defs>
-                  <linearGradient id="portfolioGradient" x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient
+                    id="portfolioGradient"
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                  >
                     <stop
                       offset="5%"
                       stopColor={portfolioTrendPositive ? "#22c55e" : "#ef4444"}
@@ -361,7 +382,7 @@ const Dashboard = () => {
                     backgroundColor: "#111827",
                     border: "1px solid #374151",
                     borderRadius: "8px",
-                    color: "#fff"
+                    color: "#fff",
                   }}
                 />
 
@@ -373,28 +394,38 @@ const Dashboard = () => {
                   fill="url(#portfolioGradient)"
                   dot={false}
                 />
-
               </AreaChart>
             </ResponsiveContainer>
-
           </div>
         </div>
 
         {/* SUMMARY CARDS */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-          <Card title="Total Invested" value={formatINR(summary.totalInvested)} />
+          <Card
+            title="Total Invested"
+            value={formatINR(summary.totalInvested)}
+          />
           <Card title="Current Value" value={formatINR(summary.currentValue)} />
 
-          <div className={`p-6 rounded-xl border ${isOverallProfit
-            ? "bg-emerald-900/10 border-emerald-800/40"
-            : "bg-red-900/10 border-red-800/40"
-            }`}>
-            <h4 className={`text-xs font-semibold uppercase tracking-wider mb-2 ${isOverallProfit ? "text-emerald-500" : "text-red-500"
-              }`}>
+          <div
+            className={`p-6 rounded-xl border ${
+              isOverallProfit
+                ? "bg-emerald-900/10 border-emerald-800/40"
+                : "bg-red-900/10 border-red-800/40"
+            }`}
+          >
+            <h4
+              className={`text-xs font-semibold uppercase tracking-wider mb-2 ${
+                isOverallProfit ? "text-emerald-500" : "text-red-500"
+              }`}
+            >
               Total Profit / Loss
             </h4>
-            <h3 className={`text-2xl font-bold ${isOverallProfit ? "text-emerald-400" : "text-red-400"
-              }`}>
+            <h3
+              className={`text-2xl font-bold ${
+                isOverallProfit ? "text-emerald-400" : "text-red-400"
+              }`}
+            >
               {isOverallProfit ? "+" : ""}
               {formatINR(summary.totalProfitLoss)}
             </h3>
@@ -403,9 +434,16 @@ const Dashboard = () => {
           <Card
             title="Profit / Loss %"
             value={
-              <div className={`flex items-center gap-2 font-bold ${isOverallProfit ? "text-emerald-400" : "text-red-400"
-                }`}>
-                {isOverallProfit ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
+              <div
+                className={`flex items-center gap-2 font-bold ${
+                  isOverallProfit ? "text-emerald-400" : "text-red-400"
+                }`}
+              >
+                {isOverallProfit ? (
+                  <TrendingUp size={20} />
+                ) : (
+                  <TrendingDown size={20} />
+                )}
                 {Math.abs(summary.profitLossPercent).toFixed(2)}%
               </div>
             }
@@ -414,7 +452,6 @@ const Dashboard = () => {
 
         <div className="overflow-x-auto w-full pb-10">
           <table className="min-w-full text-sm text-left whitespace-nowrap">
-
             <thead className="text-slate-400 text-xs font-semibold border-y border-slate-800/60 bg-slate-900/40">
               <tr>
                 <th className="px-4 py-4 w-10"></th>
@@ -442,17 +479,17 @@ const Dashboard = () => {
 
                   return (
                     <React.Fragment key={keyId}>
-
                       {/* MAIN ROW */}
                       <tr
                         onClick={() =>
                           setSelectedCoin(
-                            selectedCoin?.assetName === asset.assetName ? null : asset
+                            selectedCoin?.assetName === asset.assetName
+                              ? null
+                              : asset,
                           )
                         }
                         className="border-b border-slate-800/60 hover:bg-slate-800/40 transition cursor-pointer"
                       >
-
                         {/* ⭐ */}
                         <td className="px-4 py-4 text-center">
                           <Star
@@ -485,7 +522,11 @@ const Dashboard = () => {
                         </td>
 
                         <td className="px-4 py-4 text-right font-semibold text-white">
-                          {formatINR(asset.currentPrice)}
+                          {parseFloat(asset.currentPrice) === 0 ? (
+                            <span className="text-slate-500 text-xs">N/A</span>
+                          ) : (
+                            formatINR(asset.currentPrice)
+                          )}
                         </td>
 
                         <td className="px-4 py-4 text-right">
@@ -493,17 +534,22 @@ const Dashboard = () => {
                             {formatINR(asset.currentValue)}
                           </div>
                           <div className="text-xs text-slate-500">
-                            {formatQuantity(asset.quantity)} {symbol.toUpperCase()}
+                            {formatQuantity(asset.quantity)}{" "}
+                            {symbol.toUpperCase()}
                           </div>
                         </td>
 
                         <td className="px-4 py-4 text-right">
-                          <div className={`font-semibold ${isProfit ? "text-emerald-500" : "text-red-500"}`}>
+                          <div
+                            className={`font-semibold ${isProfit ? "text-emerald-500" : "text-red-500"}`}
+                          >
                             {isProfit ? "+" : ""}
                             {formatINR(asset.profitLoss)}
                           </div>
 
-                          <div className={`text-xs ${isProfit ? "text-emerald-400" : "text-red-400"}`}>
+                          <div
+                            className={`text-xs ${isProfit ? "text-emerald-400" : "text-red-400"}`}
+                          >
                             {isProfit ? "+" : ""}
                             {(asset.profitLossPercent || 0).toFixed(2)}%
                           </div>
@@ -526,16 +572,13 @@ const Dashboard = () => {
                             </button>
                           </div>
                         </td>
-
                       </tr>
                       {/* EXPANDABLE CHART */}
                       {selectedCoin?.assetName === asset.assetName && (
                         <tr>
                           <td colSpan="6" className="bg-slate-900/60 px-6 py-6">
-
                             {/* CHART HEADER */}
                             <div className="flex items-center justify-between mb-4">
-
                               <span className="text-xs text-slate-400 font-semibold">
                                 Past History
                               </span>
@@ -546,34 +589,61 @@ const Dashboard = () => {
                                     key={tf}
                                     onClick={() => setTimeframe(tf)}
                                     className={`px-3 py-1 text-xs rounded-full transition
-                                        ${timeframe === tf
-                                        ? "bg-indigo-600 text-white"
-                                        : "bg-slate-800 text-slate-400 hover:bg-slate-700"
-                                      }`}
+                                        ${
+                                          timeframe === tf
+                                            ? "bg-indigo-600 text-white"
+                                            : "bg-slate-800 text-slate-400 hover:bg-slate-700"
+                                        }`}
                                   >
                                     {tf}
                                   </button>
                                 ))}
                               </div>
-
                             </div>
 
                             {/* CHART */}
                             <div className="h-56 w-full">
                               <ResponsiveContainer width="100%" height="100%">
                                 <AreaChart data={charts[coinId] || []}>
-
                                   {/* 1. Define the Gradients here */}
                                   <defs>
                                     {/* Green Gradient for Profit */}
-                                    <linearGradient id="colorGreen" x1="0" y1="0" x2="0" y2="1">
-                                      <stop offset="5%" stopColor="#22c55e" stopOpacity={0.4} />
-                                      <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+                                    <linearGradient
+                                      id="colorGreen"
+                                      x1="0"
+                                      y1="0"
+                                      x2="0"
+                                      y2="1"
+                                    >
+                                      <stop
+                                        offset="5%"
+                                        stopColor="#22c55e"
+                                        stopOpacity={0.4}
+                                      />
+                                      <stop
+                                        offset="95%"
+                                        stopColor="#22c55e"
+                                        stopOpacity={0}
+                                      />
                                     </linearGradient>
                                     {/* Red Gradient for Loss */}
-                                    <linearGradient id="colorRed" x1="0" y1="0" x2="0" y2="1">
-                                      <stop offset="5%" stopColor="#ef4444" stopOpacity={0.4} />
-                                      <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                                    <linearGradient
+                                      id="colorRed"
+                                      x1="0"
+                                      y1="0"
+                                      x2="0"
+                                      y2="1"
+                                    >
+                                      <stop
+                                        offset="5%"
+                                        stopColor="#ef4444"
+                                        stopOpacity={0.4}
+                                      />
+                                      <stop
+                                        offset="95%"
+                                        stopColor="#ef4444"
+                                        stopOpacity={0}
+                                      />
                                     </linearGradient>
                                   </defs>
 
@@ -596,19 +666,25 @@ const Dashboard = () => {
                                       const date = new Date(tickItem);
 
                                       // If 24 Hours, show the time (e.g., 2:30 PM)
-                                      if (timeframe === '24H') {
-                                        return date.toLocaleTimeString('en-IN', {
-                                          hour: '2-digit',
-                                          minute: '2-digit'
-                                        });
+                                      if (timeframe === "24H") {
+                                        return date.toLocaleTimeString(
+                                          "en-IN",
+                                          {
+                                            hour: "2-digit",
+                                            minute: "2-digit",
+                                          },
+                                        );
                                       }
 
                                       // If 7 Days, show the day and month (e.g., Mar 09)
-                                      if (timeframe === '7D') {
-                                        return date.toLocaleDateString('en-IN', {
-                                          month: 'short',
-                                          day: 'numeric'
-                                        });
+                                      if (timeframe === "7D") {
+                                        return date.toLocaleDateString(
+                                          "en-IN",
+                                          {
+                                            month: "short",
+                                            day: "numeric",
+                                          },
+                                        );
                                       }
 
                                       // Default fallback
@@ -622,9 +698,11 @@ const Dashboard = () => {
                                     domain={["dataMin", "dataMax"]}
                                     tickFormatter={(value) => {
                                       // Converts large numbers to compact notation (e.g., ₹1.2L, ₹1.5Cr)
-                                      if (value >= 10000000) return `₹${(value / 10000000).toFixed(2)}Cr`;
-                                      if (value >= 100000) return `₹${(value / 100000).toFixed(2)}L`;
-                                      return `₹${value.toLocaleString('en-IN')}`;
+                                      if (value >= 10000000)
+                                        return `₹${(value / 10000000).toFixed(2)}Cr`;
+                                      if (value >= 100000)
+                                        return `₹${(value / 100000).toFixed(2)}L`;
+                                      return `₹${value.toLocaleString("en-IN")}`;
                                     }}
                                   />
 
@@ -633,7 +711,7 @@ const Dashboard = () => {
                                       backgroundColor: "#111827",
                                       border: "1px solid #374151",
                                       borderRadius: "8px",
-                                      color: "#fff"
+                                      color: "#fff",
                                     }}
                                     labelStyle={{ color: "#94a3b8" }}
                                     formatter={(value) => formatTooltip(value)}
@@ -646,25 +724,29 @@ const Dashboard = () => {
                                     stroke={isProfit ? "#22c55e" : "#ef4444"}
                                     strokeWidth={2.5}
                                     fillOpacity={1}
-                                    fill={isProfit ? "url(#colorGreen)" : "url(#colorRed)"}
+                                    fill={
+                                      isProfit
+                                        ? "url(#colorGreen)"
+                                        : "url(#colorRed)"
+                                    }
                                     dot={false}
-                                    activeDot={{ r: 5, fill: isProfit ? "#22c55e" : "#ef4444", stroke: "#fff" }}
+                                    activeDot={{
+                                      r: 5,
+                                      fill: isProfit ? "#22c55e" : "#ef4444",
+                                      stroke: "#fff",
+                                    }}
                                   />
-
                                 </AreaChart>
                               </ResponsiveContainer>
                             </div>
-
                           </td>
                         </tr>
                       )}
-
                     </React.Fragment>
                   );
                 })
               )}
             </tbody>
-
           </table>
         </div>
       </div>

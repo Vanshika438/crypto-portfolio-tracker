@@ -1,182 +1,331 @@
 import React, { useEffect, useState } from "react";
+import { Wallet, Plus, Edit2, Trash2, X } from "lucide-react";
 import {
   getMyHoldings,
   addAsset,
   deleteAsset,
   updateAsset,
 } from "../api/holdingApi";
+import { SkeletonTable } from "../components/Skeleton";
+
+const EMPTY_FORM = { assetName: "", quantity: "", buyPrice: "" };
 
 const Holding = () => {
   const [assets, setAssets] = useState([]);
-  const [form, setForm] = useState({
-    assetName: "",
-    quantity: "",
-    buyPrice: "",
-  });
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     fetchPortfolio();
   }, []);
 
   const fetchPortfolio = async () => {
+    setLoading(true);
     try {
       const res = await getMyHoldings();
       setAssets(res.data);
     } catch (err) {
       console.error(err);
+    } finally {
+      setLoading(false);
     }
-  };
-
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+    setSubmitting(true);
     try {
       if (editingId) {
         await updateAsset(editingId, form);
-        setEditingId(null);
       } else {
         await addAsset(form);
       }
+      resetForm();
+      fetchPortfolio();
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.error || "Failed to save asset");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
-      setForm({ assetName: "", quantity: "", buyPrice: "" });
+  const handleEdit = (asset) => {
+    setForm({
+      assetName: asset.assetName,
+      quantity: asset.quantity,
+      buyPrice: asset.buyPrice,
+    });
+    setEditingId(asset.id);
+    setShowForm(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Remove this asset from your portfolio?")) return;
+    try {
+      await deleteAsset(id);
       fetchPortfolio();
     } catch (err) {
       console.error(err);
     }
   };
 
-  const handleEdit = (asset) => {
-    setForm(asset);
-    setEditingId(asset.id);
+  const resetForm = () => {
+    setForm(EMPTY_FORM);
+    setEditingId(null);
+    setShowForm(false);
   };
 
-  const handleDelete = async (id) => {
-    await deleteAsset(id);
-    fetchPortfolio();
-  };
+  const formatINR = (v) =>
+    new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 2,
+    }).format(v || 0);
 
+  const totalInvested = assets.reduce(
+    (sum, a) => sum + parseFloat(a.buyPrice || 0) * parseFloat(a.quantity || 0),
+    0,
+  );
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-900 text-slate-200 px-4 py-8">
+        <div className="max-w-5xl mx-auto">
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <div className="animate-pulse bg-slate-800 rounded-lg h-7 w-36 mb-2" />
+              <div className="animate-pulse bg-slate-800 rounded-lg h-4 w-48" />
+            </div>
+            <div className="animate-pulse bg-slate-800 rounded-lg h-9 w-28" />
+          </div>
+          <SkeletonTable rows={6} />
+        </div>
+      </div>
+    );
+  }
   return (
-    <div className="min-h-screen bg-slate-900 px-4 py-8 text-white sm:px-6">
-      <div className="mx-auto w-full max-w-5xl">
-        <div className="mb-8 text-center">
-          <h2 className="text-3xl font-bold sm:text-4xl">My Holdings</h2>
-          <p className="mt-2 text-sm text-slate-400">
-            Manage your crypto assets from one place.
-          </p>
+    <div className="min-h-screen bg-slate-900 text-slate-200 px-4 py-8">
+      <div className="max-w-5xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-indigo-500/20 rounded-xl flex items-center justify-center">
+              <Wallet className="text-indigo-400" size={20} />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-white">My Holdings</h2>
+              <p className="text-slate-400 text-sm">
+                {assets.length} asset{assets.length !== 1 ? "s" : ""} · Total
+                invested {formatINR(totalInvested)}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              setShowForm(!showForm);
+              setEditingId(null);
+              setForm(EMPTY_FORM);
+            }}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition"
+          >
+            <Plus size={16} />
+            Add Asset
+          </button>
         </div>
 
-        <div className="mb-8 rounded-2xl border border-slate-700/70 bg-slate-800/60 p-6 shadow-xl">
-          <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-3">
-            <input
-              name="assetName"
-              type="text"
-              placeholder="Coin Name"
-              value={form.assetName}
-              onChange={handleChange}
-              className="w-full rounded-lg border border-slate-700 bg-slate-900/80 px-4 py-2.5 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              required
-            />
-            <input
-              name="quantity"
-              type="number"
-              placeholder="Quantity"
-              value={form.quantity}
-              onChange={handleChange}
-              className="w-full rounded-lg border border-slate-700 bg-slate-900/80 px-4 py-2.5 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              required
-            />
-            <input
-              name="buyPrice"
-              type="number"
-              placeholder="Buy Price"
-              value={form.buyPrice}
-              onChange={handleChange}
-              className="w-full rounded-lg border border-slate-700 bg-slate-900/80 px-4 py-2.5 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              required
-            />
-
-            <div className="mt-2 md:col-span-3">
+        {/* Add / Edit Form */}
+        {showForm && (
+          <div className="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-6 mb-8">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-sm font-semibold text-white">
+                {editingId ? "Edit Asset" : "Add New Asset"}
+              </h3>
               <button
-                type="submit"
-                className={`w-full rounded-lg px-6 py-2.5 font-semibold transition md:w-auto ${
-                  editingId
-                    ? "bg-amber-500 text-black hover:bg-amber-400"
-                    : "bg-indigo-600 text-white hover:bg-indigo-500"
-                }`}
+                onClick={resetForm}
+                className="p-1.5 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-white transition"
               >
-                {editingId ? "Update Asset" : "Add Asset"}
+                <X size={16} />
               </button>
             </div>
-          </form>
-        </div>
-
-        <div className="grid gap-5 md:grid-cols-2">
-          {assets.length === 0 && (
-            <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-6 text-center text-slate-300 md:col-span-2">
-              No holdings yet. Add your first asset above.
-            </div>
-          )}
-
-          {assets.map((asset) => (
-            <div
-              key={asset.id}
-              className="rounded-2xl border border-slate-700 bg-gradient-to-br from-slate-800/90 to-slate-900/90 p-5 shadow-lg transition hover:-translate-y-0.5 hover:border-indigo-500/60 hover:shadow-indigo-500/20"
-            >
-              <div className="mb-4 flex items-center gap-3 rounded-xl bg-slate-800/60 p-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-500/20 text-sm font-bold uppercase text-indigo-300">
-                  {(asset.assetName || "?").slice(0, 2)}
+            <form onSubmit={handleSubmit}>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                <div>
+                  <label className="text-xs text-slate-400 mb-1.5 block font-medium">
+                    Coin Symbol *
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. BTC"
+                    value={form.assetName}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        assetName: e.target.value.toUpperCase(),
+                      })
+                    }
+                    className="w-full px-4 py-3 rounded-xl bg-slate-900/80 text-white border border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm placeholder-slate-500"
+                    required
+                  />
                 </div>
                 <div>
-                  <p className="text-xs uppercase tracking-wide text-slate-400">
-                    Coin Name
-                  </p>
-                  <h4 className="text-lg font-bold text-white">
-                    {asset.assetName || "Unknown Coin"}
-                  </h4>
+                  <label className="text-xs text-slate-400 mb-1.5 block font-medium">
+                    Quantity *
+                  </label>
+                  <input
+                    type="number"
+                    step="any"
+                    placeholder="0.00"
+                    value={form.quantity}
+                    onChange={(e) =>
+                      setForm({ ...form, quantity: e.target.value })
+                    }
+                    className="w-full px-4 py-3 rounded-xl bg-slate-900/80 text-white border border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm placeholder-slate-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 mb-1.5 block font-medium">
+                    Buy Price (INR) *
+                  </label>
+                  <input
+                    type="number"
+                    step="any"
+                    placeholder="₹0.00"
+                    value={form.buyPrice}
+                    onChange={(e) =>
+                      setForm({ ...form, buyPrice: e.target.value })
+                    }
+                    className="w-full px-4 py-3 rounded-xl bg-slate-900/80 text-white border border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm placeholder-slate-500"
+                    required
+                  />
                 </div>
               </div>
-
-              <div className="mb-4 grid grid-cols-2 gap-3">
-                <div className="rounded-xl border border-slate-700 bg-slate-800/60 p-3">
-                  <p className="text-xs uppercase tracking-wide text-slate-400">
-                    Quantity
-                  </p>
-                  <p className="mt-1 text-base font-semibold text-white">
-                    {asset.quantity}
-                  </p>
-                </div>
-                <div className="rounded-xl border border-slate-700 bg-slate-800/60 p-3">
-                  <p className="text-xs uppercase tracking-wide text-slate-400">
-                    Buy Price
-                  </p>
-                  <p className="mt-1 text-base font-semibold text-emerald-400">
-                    Rs {asset.buyPrice}
-                  </p>
-                </div>
-              </div>
-
               <div className="flex gap-3">
                 <button
-                  onClick={() => handleEdit(asset)}
-                  className="flex-1 rounded-lg border border-indigo-500/50 bg-indigo-500/20 py-2 font-semibold text-indigo-200 transition hover:bg-indigo-500/35 hover:text-white"
+                  type="submit"
+                  disabled={submitting}
+                  className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold disabled:opacity-60 transition"
                 >
-                  Edit
+                  {submitting
+                    ? "Saving..."
+                    : editingId
+                      ? "Update Asset"
+                      : "Add Asset"}
                 </button>
                 <button
-                  onClick={() => handleDelete(asset.id)}
-                  className="flex-1 rounded-lg border border-rose-500/50 bg-rose-500/20 py-2 font-semibold text-rose-200 transition hover:bg-rose-500/35 hover:text-white"
+                  type="button"
+                  onClick={resetForm}
+                  className="px-6 py-2.5 rounded-xl bg-slate-700 hover:bg-slate-600 text-white text-sm font-semibold transition"
                 >
-                  Delete
+                  Cancel
                 </button>
               </div>
-            </div>
-          ))}
-        </div>
+            </form>
+          </div>
+        )}
+
+        {/* Holdings Table */}
+        {assets.length === 0 ? (
+          <div className="text-center py-20 bg-slate-800/30 border border-slate-700/50 rounded-2xl">
+            <Wallet size={40} className="mx-auto mb-4 text-slate-600" />
+            <p className="text-slate-400 font-semibold mb-1">No holdings yet</p>
+            <p className="text-slate-500 text-sm mb-5">
+              Add your first crypto asset to get started
+            </p>
+            <button
+              onClick={() => setShowForm(true)}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition"
+            >
+              <Plus size={16} /> Add First Asset
+            </button>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead className="text-slate-400 text-xs font-semibold border-y border-slate-800/60 bg-slate-900/40">
+                <tr>
+                  <th className="px-4 py-3 text-left">Asset</th>
+                  <th className="px-4 py-3 text-right">Quantity</th>
+                  <th className="px-4 py-3 text-right">Buy Price (INR)</th>
+                  <th className="px-4 py-3 text-right">Total Invested</th>
+                  <th className="px-4 py-3 text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {assets.map((asset) => {
+                  const totalInvestedAsset =
+                    parseFloat(asset.buyPrice || 0) *
+                    parseFloat(asset.quantity || 0);
+                  return (
+                    <tr
+                      key={asset.id}
+                      className="border-b border-slate-800/60 hover:bg-slate-800/30 transition"
+                    >
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full bg-indigo-500/20 flex items-center justify-center text-xs font-bold text-indigo-300 uppercase">
+                            {asset.assetName?.slice(0, 2)}
+                          </div>
+                          <div>
+                            <p className="font-bold text-white">
+                              {asset.assetName}
+                            </p>
+                            <p className="text-xs text-slate-500 uppercase">
+                              {asset.assetName?.toLowerCase()}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 text-right text-white font-semibold">
+                        {parseFloat(asset.quantity).toFixed(6)}
+                      </td>
+                      <td className="px-4 py-4 text-right text-slate-300">
+                        {formatINR(asset.buyPrice)}
+                      </td>
+                      <td className="px-4 py-4 text-right font-semibold text-white">
+                        {formatINR(totalInvestedAsset)}
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex justify-center gap-2">
+                          <button
+                            onClick={() => handleEdit(asset)}
+                            className="p-1.5 rounded-lg hover:bg-slate-700 text-slate-500 hover:text-indigo-400 transition"
+                          >
+                            <Edit2 size={14} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(asset.id)}
+                            className="p-1.5 rounded-lg hover:bg-slate-700 text-slate-500 hover:text-red-400 transition"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              {/* Footer total row */}
+              <tfoot>
+                <tr className="border-t-2 border-slate-700/60">
+                  <td className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                    Total ({assets.length} assets)
+                  </td>
+                  <td colSpan={2}></td>
+                  <td className="px-4 py-3 text-right font-bold text-white">
+                    {formatINR(totalInvested)}
+                  </td>
+                  <td></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );
