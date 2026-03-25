@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { Wallet, Plus, Edit2, Trash2, X } from "lucide-react";
 import {
   getMyHoldings,
@@ -11,16 +12,34 @@ import { SkeletonTable } from "../components/Skeleton";
 const EMPTY_FORM = { assetName: "", quantity: "", buyPrice: "" };
 
 const Holding = () => {
-  const [assets, setAssets] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
+  const location = useLocation();
+
+  const [assets, setAssets]       = useState([]);
+  const [loading, setLoading]     = useState(true);
+  const [showForm, setShowForm]   = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [form, setForm] = useState(EMPTY_FORM);
+  const [form, setForm]           = useState(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
 
+  // Load holdings on mount
   useEffect(() => {
     fetchPortfolio();
   }, []);
+
+  // Open edit form when navigated from Dashboard with state
+  useEffect(() => {
+    if (location.state?.editAsset) {
+      const asset = location.state.editAsset;
+      setForm({
+        assetName: asset.assetName,
+        quantity:  asset.quantity,
+        buyPrice:  asset.buyPrice,
+      });
+      setEditingId(asset.id);
+      setShowForm(true);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, [location.state]);
 
   const fetchPortfolio = async () => {
     setLoading(true);
@@ -56,8 +75,8 @@ const Holding = () => {
   const handleEdit = (asset) => {
     setForm({
       assetName: asset.assetName,
-      quantity: asset.quantity,
-      buyPrice: asset.buyPrice,
+      quantity:  asset.quantity,
+      buyPrice:  asset.buyPrice,
     });
     setEditingId(asset.id);
     setShowForm(true);
@@ -88,7 +107,8 @@ const Holding = () => {
     }).format(v || 0);
 
   const totalInvested = assets.reduce(
-    (sum, a) => sum + parseFloat(a.buyPrice || 0) * parseFloat(a.quantity || 0),
+    (sum, a) =>
+      sum + parseFloat(a.buyPrice || 0) * parseFloat(a.quantity || 0),
     0,
   );
 
@@ -108,9 +128,11 @@ const Holding = () => {
       </div>
     );
   }
+
   return (
     <div className="min-h-screen bg-slate-900 text-slate-200 px-4 py-8">
       <div className="max-w-5xl mx-auto">
+
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
@@ -163,10 +185,7 @@ const Holding = () => {
                     placeholder="e.g. BTC"
                     value={form.assetName}
                     onChange={(e) =>
-                      setForm({
-                        ...form,
-                        assetName: e.target.value.toUpperCase(),
-                      })
+                      setForm({ ...form, assetName: e.target.value.toUpperCase() })
                     }
                     className="w-full px-4 py-3 rounded-xl bg-slate-900/80 text-white border border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm placeholder-slate-500"
                     required
@@ -181,9 +200,7 @@ const Holding = () => {
                     step="any"
                     placeholder="0.00"
                     value={form.quantity}
-                    onChange={(e) =>
-                      setForm({ ...form, quantity: e.target.value })
-                    }
+                    onChange={(e) => setForm({ ...form, quantity: e.target.value })}
                     className="w-full px-4 py-3 rounded-xl bg-slate-900/80 text-white border border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm placeholder-slate-500"
                     required
                   />
@@ -197,9 +214,7 @@ const Holding = () => {
                     step="any"
                     placeholder="₹0.00"
                     value={form.buyPrice}
-                    onChange={(e) =>
-                      setForm({ ...form, buyPrice: e.target.value })
-                    }
+                    onChange={(e) => setForm({ ...form, buyPrice: e.target.value })}
                     className="w-full px-4 py-3 rounded-xl bg-slate-900/80 text-white border border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm placeholder-slate-500"
                     required
                   />
@@ -214,8 +229,8 @@ const Holding = () => {
                   {submitting
                     ? "Saving..."
                     : editingId
-                      ? "Update Asset"
-                      : "Add Asset"}
+                    ? "Update Asset"
+                    : "Add Asset"}
                 </button>
                 <button
                   type="button"
@@ -310,17 +325,16 @@ const Holding = () => {
                   );
                 })}
               </tbody>
-              {/* Footer total row */}
               <tfoot>
                 <tr className="border-t-2 border-slate-700/60">
                   <td className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">
                     Total ({assets.length} assets)
                   </td>
-                  <td colSpan={2}></td>
+                  <td colSpan={2} />
                   <td className="px-4 py-3 text-right font-bold text-white">
                     {formatINR(totalInvested)}
                   </td>
-                  <td></td>
+                  <td />
                 </tr>
               </tfoot>
             </table>

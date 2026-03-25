@@ -7,14 +7,16 @@ import Profile from "./pages/Profile";
 import RiskAlerts from "./pages/RiskAlerts";
 import Navbar from "./components/Navbar";
 import ProtectedRoute from "./components/ProtectedRoute";
+import ErrorBoundary from "./components/ErrorBoundary";
 import Exchange from "./pages/Exchange";
 import Trades from "./pages/Trades";
 import Report from "./pages/Report";
 import Portfolio from "./pages/Portfolio";
 import "./App.css";
+
 function App() {
   return (
-    <>
+    <ErrorBoundary>
       <Navbar />
       <Routes>
         <Route path="/" element={<AuthPage />} />
@@ -54,6 +56,7 @@ function App() {
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/risk"
           element={
@@ -71,6 +74,7 @@ function App() {
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/report"
           element={
@@ -79,6 +83,7 @@ function App() {
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/portfolio"
           element={
@@ -88,7 +93,7 @@ function App() {
           }
         />
       </Routes>
-    </>
+    </ErrorBoundary>
   );
 }
 
