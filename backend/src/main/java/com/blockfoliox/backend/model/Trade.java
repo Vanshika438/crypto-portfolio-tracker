@@ -7,7 +7,10 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "trades")
+@Table(name = "trades",
+    uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"user_id", "exchange", "assetSymbol", "executedAt", "type"})
+    })
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

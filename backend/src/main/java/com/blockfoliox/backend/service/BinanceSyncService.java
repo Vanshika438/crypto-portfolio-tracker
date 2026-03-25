@@ -38,11 +38,11 @@ public class BinanceSyncService {
             ExchangeRepository exchangeRepository,
             EncryptionService encryptionService,
             PLReportService plReportService) {
-        this.tradeRepository  = tradeRepository;
-        this.apiKeyRepository = apiKeyRepository;
+        this.tradeRepository    = tradeRepository;
+        this.apiKeyRepository   = apiKeyRepository;
         this.exchangeRepository = exchangeRepository;
-        this.encryptionService = encryptionService;
-        this.plReportService  = plReportService;
+        this.encryptionService  = encryptionService;
+        this.plReportService    = plReportService;
     }
 
     public List<Trade> syncTrades(User user) {
@@ -51,7 +51,6 @@ public class BinanceSyncService {
 
         Optional<ApiKey> apiKeyOpt = apiKeyRepository.findByUserAndExchange(user, binance);
 
-        // ✅ No API key connected — use demo trades
         if (apiKeyOpt.isEmpty()) {
             return syncDemoTrades(user);
         }
@@ -60,9 +59,11 @@ public class BinanceSyncService {
         String decryptedSecret = encryptionService.decrypt(apiKeyOpt.get().getApiSecret());
         BigDecimal usdToInr    = plReportService.getUsdToInrRate();
 
-        String[] symbols = {"BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT",
-                             "ADAUSDT", "DOGEUSDT", "XRPUSDT", "DOTUSDT",
-                             "MATICUSDT", "LINKUSDT", "UNIUSDT", "LTCUSDT"};
+        String[] symbols = {
+            "BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT",
+            "ADAUSDT", "DOGEUSDT", "XRPUSDT", "DOTUSDT",
+            "MATICUSDT", "LINKUSDT", "UNIUSDT", "LTCUSDT"
+        };
 
         List<Trade> allSynced = new ArrayList<>();
         for (String symbol : symbols) {
@@ -77,7 +78,7 @@ public class BinanceSyncService {
         return allSynced;
     }
 
-    // Demo trades — used when no Binance API key is connected
+    // ── Demo trades — used when no Binance API key is connected ──────────────
     private List<Trade> syncDemoTrades(User user) {
         BigDecimal usdToInr = plReportService.getUsdToInrRate();
 
@@ -104,6 +105,18 @@ public class BinanceSyncService {
             double priceUsd = (double) d[3];
             int daysAgo     = (int)    d[4];
 
+            LocalDateTime executedAt = LocalDateTime.now().minusDays(daysAgo);
+            Trade.TradeType tradeType = Trade.TradeType.valueOf(type);
+
+            // ── Deduplication check ───────────────────────────────────────────
+            boolean exists = tradeRepository
+                    .existsByUserAndExchangeAndAssetSymbolAndExecutedAtAndType(
+                            user, "Binance (Demo)", symbol, executedAt, tradeType);
+
+            if (exists) {
+                continue;
+            }
+
             BigDecimal pUsd = BigDecimal.valueOf(priceUsd)
                     .setScale(2, RoundingMode.HALF_UP);
             BigDecimal pInr = pUsd.multiply(usdToInr)
@@ -112,7 +125,7 @@ public class BinanceSyncService {
             Trade trade = Trade.builder()
                     .user(user)
                     .assetSymbol(symbol)
-                    .type(Trade.TradeType.valueOf(type))
+                    .type(tradeType)
                     .quantity(BigDecimal.valueOf(qty))
                     .priceInr(pInr)
                     .priceUsd(pUsd)
@@ -120,7 +133,7 @@ public class BinanceSyncService {
                     .feeUsd(BigDecimal.valueOf(0.12))
                     .exchange("Binance (Demo)")
                     .notes("Demo trade — synced for testing")
-                    .executedAt(LocalDateTime.now().minusDays(daysAgo))
+                    .executedAt(executedAt)
                     .build();
 
             saved.add(tradeRepository.save(trade));
@@ -168,15 +181,26 @@ public class BinanceSyncService {
                         .setScale(2, RoundingMode.HALF_UP);
             }
 
-            boolean isBuyer  = Boolean.TRUE.equals(t.get("isBuyer"));
-            long time        = Long.parseLong(t.get("time").toString());
+            boolean isBuyer = Boolean.TRUE.equals(t.get("isBuyer"));
+            long time       = Long.parseLong(t.get("time").toString());
             LocalDateTime executedAt = LocalDateTime.ofInstant(
                     Instant.ofEpochMilli(time), ZoneId.systemDefault());
+
+            Trade.TradeType tradeType = isBuyer ? Trade.TradeType.BUY : Trade.TradeType.SELL;
+
+            // ── Deduplication check ───────────────────────────────────────────
+            boolean exists = tradeRepository
+                    .existsByUserAndExchangeAndAssetSymbolAndExecutedAtAndType(
+                            user, "Binance", assetSymbol, executedAt, tradeType);
+
+            if (exists) {
+                continue;
+            }
 
             Trade trade = Trade.builder()
                     .user(user)
                     .assetSymbol(assetSymbol)
-                    .type(isBuyer ? Trade.TradeType.BUY : Trade.TradeType.SELL)
+                    .type(tradeType)
                     .quantity(qty)
                     .priceInr(priceInr)
                     .priceUsd(priceUsd)

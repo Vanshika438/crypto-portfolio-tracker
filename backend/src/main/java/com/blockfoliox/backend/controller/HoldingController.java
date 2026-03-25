@@ -18,7 +18,7 @@ import java.util.*;
 
 @RestController
 @RequestMapping("/api/holding")
-@CrossOrigin
+
 public class HoldingController {
 
     private final HoldingRepository holdingRepository;
@@ -72,11 +72,27 @@ public class HoldingController {
         List<Holding> holdings = holdingRepository.findByUser(getUser(auth));
         List<Map<String, Object>> response = new ArrayList<>();
 
+        // fetch once outside the loop
+        Map<String, Map<String, Object>> allPrices = cryptoPriceService.getAllPrices();
+
         for (Holding p : holdings) {
             BigDecimal investedValue = p.getQuantity().multiply(p.getBuyPrice());
-            BigDecimal currentPrice  = cryptoPriceService.getCurrentPrice(p.getAssetName());
-            BigDecimal currentValue  = p.getQuantity().multiply(currentPrice);
-            BigDecimal profitLoss    = currentValue.subtract(investedValue);
+
+            // use the already-fetched map directly
+            BigDecimal currentPrice = BigDecimal.ZERO;
+            String coinId = p.getAssetName().toLowerCase();
+            if (allPrices != null && allPrices.containsKey(coinId)) {
+                Object inrVal = allPrices.get(coinId).get("inr");
+                if (inrVal != null) {
+                    try {
+                        currentPrice = new BigDecimal(inrVal.toString());
+                    } catch (Exception ignored) {
+                    }
+                }
+            }
+
+            BigDecimal currentValue = p.getQuantity().multiply(currentPrice);
+            BigDecimal profitLoss = currentValue.subtract(investedValue);
 
             BigDecimal profitLossPercent = investedValue.compareTo(BigDecimal.ZERO) == 0
                     ? BigDecimal.ZERO
@@ -85,14 +101,14 @@ public class HoldingController {
                             .multiply(BigDecimal.valueOf(100));
 
             Map<String, Object> data = new HashMap<>();
-            data.put("id",                p.getId());
-            data.put("assetName",         p.getAssetName());
-            data.put("quantity",          p.getQuantity());
-            data.put("buyPrice",          p.getBuyPrice());
-            data.put("currentPrice",      currentPrice);
-            data.put("investedValue",     investedValue);
-            data.put("currentValue",      currentValue);
-            data.put("profitLoss",        profitLoss);
+            data.put("id", p.getId());
+            data.put("assetName", p.getAssetName());
+            data.put("quantity", p.getQuantity());
+            data.put("buyPrice", p.getBuyPrice());
+            data.put("currentPrice", currentPrice);
+            data.put("investedValue", investedValue);
+            data.put("currentValue", currentValue);
+            data.put("profitLoss", profitLoss);
             data.put("profitLossPercent", profitLossPercent);
 
             response.add(data);
@@ -106,19 +122,19 @@ public class HoldingController {
 
         List<Holding> holdings = holdingRepository.findByUser(getUser(auth));
 
-        BigDecimal totalInvested     = BigDecimal.ZERO;
+        BigDecimal totalInvested = BigDecimal.ZERO;
         BigDecimal totalCurrentValue = BigDecimal.ZERO;
 
         for (Holding holding : holdings) {
             BigDecimal investedValue = holding.getBuyPrice().multiply(holding.getQuantity());
-            BigDecimal currentPrice  = cryptoPriceService.getCurrentPrice(holding.getAssetName());
-            BigDecimal currentValue  = holding.getQuantity().multiply(currentPrice);
+            BigDecimal currentPrice = cryptoPriceService.getCurrentPrice(holding.getAssetName());
+            BigDecimal currentValue = holding.getQuantity().multiply(currentPrice);
 
-            totalInvested     = totalInvested.add(investedValue);
+            totalInvested = totalInvested.add(investedValue);
             totalCurrentValue = totalCurrentValue.add(currentValue);
         }
 
-        BigDecimal totalProfitLoss   = totalCurrentValue.subtract(totalInvested);
+        BigDecimal totalProfitLoss = totalCurrentValue.subtract(totalInvested);
         BigDecimal profitLossPercent = totalInvested.compareTo(BigDecimal.ZERO) == 0
                 ? BigDecimal.ZERO
                 : totalProfitLoss
@@ -126,9 +142,9 @@ public class HoldingController {
                         .multiply(BigDecimal.valueOf(100));
 
         Map<String, Object> response = new HashMap<>();
-        response.put("totalInvested",     totalInvested.setScale(2, RoundingMode.HALF_UP));
-        response.put("currentValue",      totalCurrentValue.setScale(2, RoundingMode.HALF_UP));
-        response.put("totalProfitLoss",   totalProfitLoss.setScale(2, RoundingMode.HALF_UP));
+        response.put("totalInvested", totalInvested.setScale(2, RoundingMode.HALF_UP));
+        response.put("currentValue", totalCurrentValue.setScale(2, RoundingMode.HALF_UP));
+        response.put("totalProfitLoss", totalProfitLoss.setScale(2, RoundingMode.HALF_UP));
         response.put("profitLossPercent", profitLossPercent.setScale(2, RoundingMode.HALF_UP));
 
         return response;

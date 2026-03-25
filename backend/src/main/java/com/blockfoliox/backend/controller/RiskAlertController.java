@@ -17,7 +17,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/risk")
-@CrossOrigin
+
 public class RiskAlertController {
 
     private final RiskAlertRepository riskAlertRepository;

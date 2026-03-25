@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -22,19 +21,18 @@ public class ExchangeService {
     private final CryptoPriceService cryptoPriceService;
     private final ApiKeyRepository apiKeyRepository;
 
-    public ExchangeService(HoldingRepository holdingRepository,
+    public ExchangeService(
+            HoldingRepository holdingRepository,
             CryptoPriceService cryptoPriceService,
             ApiKeyRepository apiKeyRepository) {
-        this.holdingRepository = holdingRepository;
+        this.holdingRepository  = holdingRepository;
         this.cryptoPriceService = cryptoPriceService;
-        this.apiKeyRepository = apiKeyRepository;
+        this.apiKeyRepository   = apiKeyRepository;
     }
 
     @Transactional
     public List<Holding> syncHoldings(User user, Exchange exchange) {
-
-        boolean connected = apiKeyRepository
-                .existsByUserAndExchange(user, exchange);
+        boolean connected = apiKeyRepository.existsByUserAndExchange(user, exchange);
 
         if (connected) {
             System.out.println("Exchange connected → real sync (not implemented)");
@@ -47,36 +45,39 @@ public class ExchangeService {
 
     @Transactional
     public List<Holding> syncMockHoldings(User user) {
-
         List<Holding> updatedHoldings = new ArrayList<>();
         Random random = new Random(user.getId());
 
         String[] coins = { "BTC", "ETH", "SOL", "ADA", "DOGE" };
 
         for (String coin : coins) {
+            BigDecimal quantity = BigDecimal.valueOf(0.3 + random.nextDouble() * 2)
+                    .setScale(2, RoundingMode.HALF_UP);
 
-            BigDecimal quantity = BigDecimal.valueOf(0.3 + random.nextDouble() * 2);
             BigDecimal marketPrice = cryptoPriceService.getCurrentPrice(coin);
+            BigDecimal variation   = BigDecimal.valueOf(0.9 + (random.nextDouble() * 0.2));
+            BigDecimal buyPrice    = marketPrice.multiply(variation)
+                    .setScale(2, RoundingMode.HALF_UP);
 
-            BigDecimal variation = BigDecimal.valueOf(
-                    0.9 + (random.nextDouble() * 0.2));
-
-            BigDecimal buyPrice = marketPrice.multiply(variation);
-
-            buyPrice = buyPrice.setScale(2, RoundingMode.HALF_UP);
-            quantity = quantity.setScale(2, RoundingMode.HALF_UP);
-
-            Holding holding = holdingRepository
-                    .findByUserAndAssetName(user, coin)
-                    .orElse(new Holding());
-
-            holding.setUser(user);
-            holding.setAssetName(coin);
-            holding.setQuantity(quantity);
-            holding.setBuyPrice(buyPrice);
-            holding.setCreatedAt(LocalDateTime.now());
-
-            updatedHoldings.add(holding);
+            holdingRepository.findByUserAndAssetName(user, coin).ifPresentOrElse(
+                existing -> {
+                    // Only update mutable fields — @PrePersist handles createdAt
+                    // and @Column(updatable = false) prevents accidental overwrites
+                    existing.setQuantity(quantity);
+                    existing.setBuyPrice(buyPrice);
+                    updatedHoldings.add(existing);
+                },
+                () -> {
+                    // New holding — let @PrePersist set createdAt automatically
+                    Holding newHolding = Holding.builder()
+                            .user(user)
+                            .assetName(coin)
+                            .quantity(quantity)
+                            .buyPrice(buyPrice)
+                            .build();
+                    updatedHoldings.add(newHolding);
+                }
+            );
         }
 
         return holdingRepository.saveAll(updatedHoldings);

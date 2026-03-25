@@ -15,7 +15,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/trades")
-@CrossOrigin
+
 public class TradeController {
 
     private final TradeRepository tradeRepository;

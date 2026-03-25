@@ -8,7 +8,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/crypto")
-@CrossOrigin(origins = "http://localhost:3000")
+
 public class CryptoController {
 
     private final CryptoPriceService cryptoPriceService;
