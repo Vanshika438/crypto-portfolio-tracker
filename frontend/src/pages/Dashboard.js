@@ -14,6 +14,8 @@ import {
   RefreshCcw,
   Edit2,
   Trash2,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import {
   AreaChart,
@@ -24,6 +26,9 @@ import {
   Tooltip,
   CartesianGrid,
 } from "recharts";
+
+// ── Pagination config ──────────────────────────────────────────────────────────
+const PAGE_SIZE = 5;
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -42,6 +47,7 @@ const Dashboard = () => {
   const [coinImages, setCoinImages]       = useState({});
   const [selectedCoin, setSelectedCoin]   = useState(null);
   const [isSyncing, setIsSyncing]         = useState(false);
+  const [currentPage, setCurrentPage]     = useState(1);
   const hasLoadedChartsRef                = useRef(false);
   const exchangeId                        = 1;
 
@@ -84,22 +90,30 @@ const Dashboard = () => {
   };
 
   // ── Total portfolio area chart data ────────────────────────────────────────
+  // FIX: snap the last data point to the live summary.currentValue so the
+  // chart's rightmost tooltip always matches the "Current Value" summary card.
   const totalPortfolioData = React.useMemo(() => {
     if (!portfolio.length || Object.keys(charts).length === 0) return [];
 
     const numPoints = 168;
-    const now = Date.now();
-    const interval = (7 * 24 * 60 * 60 * 1000) / numPoints;
+    const now       = Date.now();
+    const interval  = (7 * 24 * 60 * 60 * 1000) / numPoints;
     const startTime = now - 7 * 24 * 60 * 60 * 1000;
-    const unified = [];
+    const unified   = [];
 
     for (let i = 0; i <= numPoints; i++) {
+      // ✅ FIX: snap final point to live current value from summary
+      if (i === numPoints && summary.currentValue) {
+        unified.push({ time: now, value: Number(summary.currentValue) });
+        continue;
+      }
+
       const targetTime = startTime + i * interval;
       let total = 0;
 
       portfolio.forEach((asset) => {
-        const coinId   = guessSymbol(asset.assetName);
-        const quantity = Number(asset.quantity || 0);
+        const coinId    = guessSymbol(asset.assetName);
+        const quantity  = Number(asset.quantity || 0);
         const coinChart = charts[coinId] || [];
         if (!coinChart.length) return;
 
@@ -115,7 +129,7 @@ const Dashboard = () => {
       unified.push({ time: targetTime, value: Number(total.toFixed(2)) });
     }
     return unified;
-  }, [portfolio, charts]);
+  }, [portfolio, charts, summary]); // ✅ added summary as dependency
 
   const portfolioTrendPositive = React.useMemo(() => {
     if (totalPortfolioData.length < 2) return true;
@@ -191,6 +205,7 @@ const Dashboard = () => {
 
       if (plRes?.data) {
         setPortfolio(plRes.data);
+        setCurrentPage(1); // reset to page 1 on fresh fetch
         await fetchCharts(plRes.data);
         hasLoadedChartsRef.current = true;
       }
@@ -231,10 +246,21 @@ const Dashboard = () => {
     }
   };
 
-  // Navigate to Holdings page and pre-open edit form for this asset
   const handleEdit = (e, asset) => {
     e.stopPropagation();
     navigate("/holding", { state: { editAsset: asset } });
+  };
+
+  // ── Pagination helpers ──────────────────────────────────────────────────────
+  const totalPages    = Math.ceil(portfolio.length / PAGE_SIZE);
+  const pagedPortfolio = portfolio.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  );
+
+  const handlePageChange = (page) => {
+    setSelectedCoin(null); // collapse sparkline when switching pages
+    setCurrentPage(page);
   };
 
   // ── Formatters ───────────────────────────────────────────────────────────────
@@ -364,7 +390,54 @@ const Dashboard = () => {
         </div>
 
         {/* ASSETS TABLE */}
-        <div className="overflow-x-auto w-full pb-10">
+        <div className="overflow-x-auto w-full pb-4">
+          {/* Table header with pagination info */}
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
+              Assets
+              {portfolio.length > 0 && (
+                <span className="ml-2 text-slate-600 font-normal normal-case">
+                  ({(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, portfolio.length)} of {portfolio.length})
+                </span>
+              )}
+            </h3>
+
+            {/* Pagination controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <button
+                    key={page}
+                    onClick={() => handlePageChange(page)}
+                    className={`w-8 h-8 rounded-lg text-xs font-semibold transition ${
+                      page === currentPage
+                        ? "bg-indigo-600 text-white"
+                        : "text-slate-400 hover:text-white hover:bg-slate-700"
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            )}
+          </div>
+
           <table className="min-w-full text-sm text-left whitespace-nowrap">
             <thead className="text-slate-400 text-xs font-semibold border-y border-slate-800/60 bg-slate-900/40">
               <tr>
@@ -384,7 +457,7 @@ const Dashboard = () => {
                   </td>
                 </tr>
               ) : (
-                portfolio.map((asset, index) => {
+                pagedPortfolio.map((asset, index) => {
                   const isProfit = asset.profitLoss >= 0;
                   const coinId   = guessSymbol(asset.assetName);
                   const symbol   = toCoincapSymbol(asset.assetName);
@@ -543,7 +616,48 @@ const Dashboard = () => {
               )}
             </tbody>
           </table>
+
+          {/* BOTTOM PAGINATION */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-800/60">
+              <span className="text-xs text-slate-500">
+                Page {currentPage} of {totalPages}
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition"
+                >
+                  <ChevronLeft size={14} /> Prev
+                </button>
+
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <button
+                    key={page}
+                    onClick={() => handlePageChange(page)}
+                    className={`w-8 h-8 rounded-lg text-xs font-semibold transition ${
+                      page === currentPage
+                        ? "bg-indigo-600 text-white"
+                        : "text-slate-400 hover:text-white hover:bg-slate-700"
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition"
+                >
+                  Next <ChevronRight size={14} />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
+
       </div>
     </div>
   );

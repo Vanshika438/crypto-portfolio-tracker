@@ -72,24 +72,12 @@ public class HoldingController {
         List<Holding> holdings = holdingRepository.findByUser(getUser(auth));
         List<Map<String, Object>> response = new ArrayList<>();
 
-        // fetch once outside the loop
-        Map<String, Map<String, Object>> allPrices = cryptoPriceService.getAllPrices();
-
         for (Holding p : holdings) {
+
             BigDecimal investedValue = p.getQuantity().multiply(p.getBuyPrice());
 
-            // use the already-fetched map directly
-            BigDecimal currentPrice = BigDecimal.ZERO;
-            String coinId = p.getAssetName().toLowerCase();
-            if (allPrices != null && allPrices.containsKey(coinId)) {
-                Object inrVal = allPrices.get(coinId).get("inr");
-                if (inrVal != null) {
-                    try {
-                        currentPrice = new BigDecimal(inrVal.toString());
-                    } catch (Exception ignored) {
-                    }
-                }
-            }
+            // ✅ FIX: correct price fetch
+            BigDecimal currentPrice = cryptoPriceService.getCurrentPrice(p.getAssetName());
 
             BigDecimal currentValue = p.getQuantity().multiply(currentPrice);
             BigDecimal profitLoss = currentValue.subtract(investedValue);
