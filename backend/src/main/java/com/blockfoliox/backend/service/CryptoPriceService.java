@@ -165,24 +165,35 @@ public class CryptoPriceService {
         if (symbol == null)
             return null;
 
-        return switch (symbol.toUpperCase()) {
-            case "BTC", "BITCOIN" -> "bitcoin";
-            case "ETH", "ETHEREUM" -> "ethereum";
-            case "SOL", "SOLANA" -> "solana";
-            case "ADA", "CARDANO" -> "cardano";
-            case "BNB", "BINANCECOIN", "BINANCE COIN" -> "binancecoin";
-            case "USDT", "TETHER" -> "tether";
-            case "XRP", "RIPPLE" -> "ripple";
-            case "DOGE", "DOGECOIN" -> "dogecoin";
-            case "DOT", "POLKADOT" -> "polkadot";
-            case "MATIC", "POLYGON" -> "matic-network";
-            case "LINK", "CHAINLINK" -> "chainlink";
-            case "ATOM", "COSMOS" -> "cosmos";
-            case "UNI", "UNISWAP" -> "uniswap";
-            case "TRX", "TRON" -> "tron";
-            case "LTC", "LITECOIN" -> "litecoin";
-            case "AVAX", "AVALANCHE" -> "avalanche-2";
-            default -> symbol.toLowerCase();
-        };
+       return switch (symbol.toUpperCase()) {
+    case "BTC", "BITCOIN" -> "bitcoin";
+    case "ETH", "ETHEREUM" -> "ethereum";
+    case "SOL", "SOLANA" -> "solana";
+    case "ADA", "CARDANO" -> "cardano";
+    case "BNB", "BINANCECOIN", "BINANCE COIN" -> "binancecoin";
+    case "USDT", "TETHER" -> "tether";
+    case "XRP", "RIPPLE" -> "ripple";
+    case "DOGE", "DOGECOIN" -> "dogecoin";
+    case "DOT", "POLKADOT" -> "polkadot";
+    case "MATIC", "POLYGON" -> "polygon-pos";
+    case "LINK", "CHAINLINK" -> "chainlink";
+    case "ATOM", "COSMOS" -> "cosmos";
+    case "UNI", "UNISWAP" -> "uniswap";
+    case "TRX", "TRON" -> "tron";
+    case "LTC", "LITECOIN" -> "litecoin";
+    case "AVAX", "AVALANCHE" -> "avalanche-2";
+    case "XLM", "STELLAR" -> "stellar";
+    case "ALGO", "ALGORAND" -> "algorand";
+    case "VET", "VECHAIN" -> "vechain";
+    case "FIL", "FILECOIN" -> "filecoin";
+    case "ETC", "ETHEREUM CLASSIC" -> "ethereum-classic";
+    case "SAND", "THE SANDBOX" -> "the-sandbox";
+    case "MANA", "DECENTRALAND" -> "decentraland";
+    case "NEAR", "NEAR PROTOCOL" -> "near";
+    case "APE", "APECOIN" -> "apecoin";
+    case "OP", "OPTIMISM" -> "optimism";
+
+    default -> symbol.toLowerCase();
+};
     }
 }

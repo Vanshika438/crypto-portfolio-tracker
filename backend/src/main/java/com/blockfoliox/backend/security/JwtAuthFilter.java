@@ -4,6 +4,8 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
@@ -15,6 +17,8 @@ import java.util.Collections;
 
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
+
+    private static final Logger log = LoggerFactory.getLogger(JwtAuthFilter.class);
 
     private final JwtUtil jwtUtil;
 
@@ -29,7 +33,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             FilterChain filterChain) throws ServletException, IOException {
 
         try {
-
             String path = request.getServletPath();
 
             if (path.startsWith("/api/auth")) {
@@ -60,13 +63,20 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     );
 
                     SecurityContextHolder.getContext().setAuthentication(authentication);
-
                 }
             }
 
+        } catch (io.jsonwebtoken.ExpiredJwtException e) {
+            // Token expired — log at debug level, not an error
+            log.debug("JWT token expired for request [{}]: {}", request.getServletPath(), e.getMessage());
+
+        } catch (io.jsonwebtoken.MalformedJwtException | io.jsonwebtoken.security.SecurityException e) {
+            // Invalid/tampered token — log at warn level
+            log.warn("Invalid JWT token for request [{}]: {}", request.getServletPath(), e.getMessage());
+
         } catch (Exception e) {
-            System.out.println("JWT Authentication failed:");
-            e.printStackTrace();
+            // Unexpected error — log at error level but WITHOUT stack trace in message
+            log.error("JWT authentication failed for request [{}]: {}", request.getServletPath(), e.getMessage());
         }
 
         filterChain.doFilter(request, response);

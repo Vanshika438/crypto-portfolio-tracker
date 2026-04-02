@@ -90,46 +90,63 @@ const Dashboard = () => {
   };
 
   // ── Total portfolio area chart data ────────────────────────────────────────
-  // FIX: snap the last data point to the live summary.currentValue so the
-  // chart's rightmost tooltip always matches the "Current Value" summary card.
-  const totalPortfolioData = React.useMemo(() => {
+const totalPortfolioData = React.useMemo(() => {
     if (!portfolio.length || Object.keys(charts).length === 0) return [];
-
+ 
     const numPoints = 168;
     const now       = Date.now();
     const interval  = (7 * 24 * 60 * 60 * 1000) / numPoints;
     const startTime = now - 7 * 24 * 60 * 60 * 1000;
     const unified   = [];
-
+ 
+    // Per-asset USD→INR multiplier
+    // currentPrice (INR) / lastSparklinePoint (USD) = INR per 1 USD for that coin
+    const inrPerUsd = {};
+    portfolio.forEach((asset) => {
+      const coinId    = guessSymbol(asset.assetName);
+      const coinChart = charts[coinId] || [];
+      if (!coinChart.length) return;
+ 
+      const lastUsd    = coinChart[coinChart.length - 1].value;
+      const currentInr = Number(asset.currentPrice || 0);
+ 
+      inrPerUsd[coinId] = lastUsd > 0 && currentInr > 0
+        ? currentInr / lastUsd
+        : 1;
+    });
+ 
+    // Build all points uniformly — NO snap on last point
     for (let i = 0; i <= numPoints; i++) {
-      // ✅ FIX: snap final point to live current value from summary
-      if (i === numPoints && summary.currentValue) {
-        unified.push({ time: now, value: Number(summary.currentValue) });
-        continue;
-      }
-
       const targetTime = startTime + i * interval;
       let total = 0;
-
+ 
       portfolio.forEach((asset) => {
         const coinId    = guessSymbol(asset.assetName);
         const quantity  = Number(asset.quantity || 0);
         const coinChart = charts[coinId] || [];
         if (!coinChart.length) return;
-
-        let closest = coinChart[0].value;
-        let minDiff = Math.abs(coinChart[0].time - targetTime);
+ 
+        // Find closest sparkline price to targetTime
+        let closestUsd = coinChart[0].value;
+        let minDiff    = Math.abs(coinChart[0].time - targetTime);
         for (let j = 1; j < coinChart.length; j++) {
           const diff = Math.abs(coinChart[j].time - targetTime);
-          if (diff < minDiff) { minDiff = diff; closest = coinChart[j].value; }
+          if (diff < minDiff) {
+            minDiff    = diff;
+            closestUsd = coinChart[j].value;
+          }
         }
-        total += closest * quantity;
+ 
+        // Convert to INR then multiply by quantity
+        const closestInr = closestUsd * (inrPerUsd[coinId] || 1);
+        total += closestInr * quantity;
       });
-
+ 
       unified.push({ time: targetTime, value: Number(total.toFixed(2)) });
     }
+ 
     return unified;
-  }, [portfolio, charts, summary]); // ✅ added summary as dependency
+  }, [portfolio, charts]);
 
   const portfolioTrendPositive = React.useMemo(() => {
     if (totalPortfolioData.length < 2) return true;

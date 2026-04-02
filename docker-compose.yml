@@ -1,0 +1,62 @@
+version: "3.9"
+
+services:
+
+  # ── MySQL ──────────────────────────────────────────────────────────────────
+  db:
+    image: mysql:8.0
+    container_name: blockfoliox_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE:      blockfoliox
+      MYSQL_USER:          ${MYSQL_USER}
+      MYSQL_PASSWORD:      ${MYSQL_PASSWORD}
+    volumes:
+      - db_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Spring Boot backend ────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: blockfoliox_backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL:      jdbc:mysql://db:3306/blockfoliox?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
+      ENCRYPTION_SECRET:          ${ENCRYPTION_SECRET}
+      ETHERSCAN_API_KEY:          ${ETHERSCAN_API_KEY}
+      ALLOWED_ORIGINS:            ${ALLOWED_ORIGINS}   # e.g. https://yourdomain.com
+    ports:
+      - "8080:8080"
+
+  # ── React frontend ─────────────────────────────────────────────────────────
+  frontend:
+    image: node:20-alpine
+    container_name: blockfoliox_frontend
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: sh -c "npm install && npm run build && npx serve -s build -l 3000"
+    environment:
+      REACT_APP_API_URL: ${REACT_APP_API_URL}  # e.g. https://api.yourdomain.com
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  db_data:
