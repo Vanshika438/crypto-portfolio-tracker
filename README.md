@@ -1,8 +1,8 @@
 # BlockfolioX — Crypto Portfolio Tracker
 
-A full-stack cryptocurrency portfolio tracker with real-time pricing, P&L analytics, risk detection, and exchange integration.
+A full-stack cryptocurrency portfolio tracker with real-time pricing, P&L analytics, risk & scam detection, tax hints, and exchange integration.
 
-**Tech Stack:** Spring Boot 3.4.1 · React 19 · MySQL · Tailwind CSS · Recharts
+**Tech Stack:** Spring Boot 3.4.1 · React 19 · MySQL 8 · Tailwind CSS · Recharts · Docker
 
 ---
 
@@ -37,15 +37,23 @@ A full-stack cryptocurrency portfolio tracker with real-time pricing, P&L analyt
 - Both INR and USD columns throughout
 - Live USD/INR exchange rate from exchangerate-api.com
 - Export to PDF (browser print dialog with professional layout)
-- Export to CSV (4 sections — portfolio summary, holdings, realized gains, trade history)
+- Export to CSV (6 sections — portfolio summary, holdings, realized gains, trade history, tax summary, per-symbol tax breakdown)
+
+### Tax Hints
+- India-specific tax calculation (Section 115BBH)
+- 30% flat tax on all realized crypto gains
+- 1% TDS on sell transactions above ₹10,000 (Section 194S)
+- Per-symbol and per-trade FIFO breakdown
+- Net tax after TDS credit
+- Tax data included in CSV export
 
 ### Risk & Scam Alerts
 - Contract verification via Etherscan API
 - Honeypot, mintable, proxy, blacklist detection via GoPlus API
 - Low market cap and high volatility alerts
 - Watchlist management — monitor tokens for risk
-- Scheduled scan every 6 hours + manual scan
-- Unread alert badge on navbar
+- Scheduled scan every 6 hours + manual scan trigger
+- Unread alert badge on navbar with auto-refresh every 5 minutes
 
 ### Exchange Connection
 - Connect Binance via API key (AES/GCM encrypted at rest)
@@ -65,10 +73,11 @@ A full-stack cryptocurrency portfolio tracker with real-time pricing, P&L analyt
 | Frontend | React 19, Tailwind CSS, Recharts |
 | Database | MySQL 8 |
 | Auth | JWT (24hr expiry), BCrypt password hashing |
-| Encryption | AES/GCM for API keys at rest |
+| Encryption | AES-256/GCM for API keys at rest |
 | Pricing | CoinGecko API (5-min cache) |
 | Risk | Etherscan API, GoPlus API |
 | Exchange Rate | exchangerate-api.com |
+| Deployment | Docker, docker-compose |
 
 ---
 
@@ -76,67 +85,111 @@ A full-stack cryptocurrency portfolio tracker with real-time pricing, P&L analyt
 
 ```
 crypto-portfolio-tracker/
+├── .env                          # Secrets (never commit)
+├── docker-compose.yml            # Full stack orchestration
 ├── backend/
+│   ├── Dockerfile                # Multi-stage Java 17 build
 │   └── src/main/java/com/blockfoliox/backend/
-│       ├── controller/       # REST controllers
-│       ├── model/            # JPA entities
-│       ├── repository/       # Spring Data repositories
-│       ├── service/          # Business logic
-│       ├── security/         # JWT filter, config
-│       └── config/           # Data initializer, exception handler
+│       ├── controller/           # REST controllers
+│       ├── model/                # JPA entities
+│       ├── repository/           # Spring Data repositories
+│       ├── service/              # Business logic
+│       ├── security/             # JWT filter, config
+│       └── config/               # Data initializer, exception handler
 └── frontend/
     └── src/
-        ├── api/              # Axios API calls
-        ├── auth/             # Login/Register page
-        ├── components/       # Navbar, ProtectedRoute, Skeleton
-        ├── context/          # AuthContext
-        └── pages/            # Dashboard, Portfolio, Holdings, Trades, Report, etc.
+        ├── api/                  # Axios API calls
+        ├── auth/                 # Login/Register page
+        ├── components/           # Navbar, ProtectedRoute, Skeleton
+        ├── context/              # AuthContext
+        └── pages/                # Dashboard, Portfolio, Holdings, Trades, Report, etc.
 ```
 
 ---
 
 ## Getting Started
 
-### Prerequisites
+### Option 1 — Docker (Recommended)
 
-- Java 17+
-- Node.js 18+
-- MySQL 8+
-- Maven 3.9+
+**Prerequisites:** Docker Desktop installed and running.
 
-### Backend Setup
+**Step 1 — Clone the repo:**
+```bash
+git clone https://github.com/Vanshika438/crypto-portfolio-tracker.git
+cd crypto-portfolio-tracker
+```
+
+**Step 2 — Create `.env` file at project root:**
+```env
+MYSQL_ROOT_PASSWORD=your_strong_root_password
+MYSQL_USER=blockfoliox_user
+MYSQL_PASSWORD=your_strong_db_password
+
+DB_URL=jdbc:mysql://db:3306/blockfoliox?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+DB_USERNAME=blockfoliox_user
+DB_PASSWORD=your_strong_db_password
+
+JWT_SECRET=your_jwt_secret_min_32_characters_long!!
+ENCRYPTION_SECRET=your_exactly_32_char_enc_key!!!!
+
+ETHERSCAN_API_KEY=your_etherscan_api_key
+
+ALLOWED_ORIGINS=http://localhost:3000
+REACT_APP_API_URL=http://localhost:8080
+
+DDL_AUTO=update
+SHOW_SQL=false
+```
+
+**Step 3 — Run everything:**
+```bash
+docker-compose up --build
+```
+
+**Step 4 — Open the app:**
+- Frontend → http://localhost:3000
+- Backend API → http://localhost:8080
+
+---
+
+### Option 2 — Manual Setup
+
+**Prerequisites:** Java 17+, Node.js 18+, MySQL 8+, Maven 3.9+
+
+**Backend Setup:**
 
 ```bash
 cd backend
 ```
 
 Create a MySQL database:
-
 ```sql
 CREATE DATABASE blockfoliox;
 ```
 
-Configure `src/main/resources/application.properties`:
-
+Create `src/main/resources/application.properties`:
 ```properties
+server.port=8080
 spring.datasource.url=jdbc:mysql://localhost:3306/blockfoliox?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
 spring.datasource.username=your_db_username
 spring.datasource.password=your_db_password
-jwt.secret=your_jwt_secret_key_min_32_characters_long
-encryption.secret=your_16_char_key_
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=false
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQLDialect
+jwt.secret=your_jwt_secret_min_32_characters_long!!
+encryption.secret=your_exactly_32_char_encryption_key
 etherscan.api.key=your_etherscan_api_key
+allowed.origins=http://localhost:3000
 ```
 
 Run the backend:
-
 ```bash
 ./mvnw spring-boot:run
 ```
 
 Backend starts on `http://localhost:8080`
 
-### Frontend Setup
-
+**Frontend Setup:**
 ```bash
 cd frontend
 npm install
@@ -178,6 +231,7 @@ Frontend starts on `http://localhost:3000`
 | Method | Endpoint | Description |
 |---|---|---|
 | GET | `/api/report/summary` | Full P&L summary (FIFO) |
+| GET | `/api/report/tax` | Tax summary — 30% flat + 1% TDS |
 | GET | `/api/report/export/csv` | Download CSV report |
 
 ### Exchange
@@ -208,37 +262,50 @@ Frontend starts on `http://localhost:3000`
 
 - Passwords hashed with BCrypt
 - JWT tokens expire after 24 hours
-- API keys encrypted at rest using AES/GCM with random IV
+- API keys encrypted at rest using AES-256/GCM with random IV
+- Startup validation — app refuses to start if encryption key is not 16+ bytes
 - All endpoints protected (except `/api/auth/**`)
-- CORS restricted to `localhost:3000`
-- Stateless session management
+- CORS restricted via environment variable
+- Stateless session management (no server-side sessions)
+- No stack traces exposed in API error responses
 
 ---
 
 ## Environment Variables
 
-Never commit real secrets. Use the following placeholders in `application.properties`:
+Never commit real secrets. Create a `.env` file at project root based on this template:
 
-```properties
-spring.datasource.username=your_db_username
-spring.datasource.password=your_db_password
-jwt.secret=your_jwt_secret_key_min_32_characters_long
-encryption.secret=your_16_char_key_
-etherscan.api.key=your_etherscan_api_key
-```
+| Variable | Description |
+|---|---|
+| `MYSQL_ROOT_PASSWORD` | MySQL root password for Docker |
+| `MYSQL_USER` | MySQL app user |
+| `MYSQL_PASSWORD` | MySQL app user password |
+| `DB_URL` | JDBC connection string |
+| `DB_USERNAME` | Database username |
+| `DB_PASSWORD` | Database password |
+| `JWT_SECRET` | JWT signing key (min 32 chars) |
+| `ENCRYPTION_SECRET` | AES key for API key encryption (exactly 32 chars) |
+| `ETHERSCAN_API_KEY` | Etherscan API key for contract verification |
+| `ALLOWED_ORIGINS` | Comma-separated allowed CORS origins |
+| `REACT_APP_API_URL` | Backend URL for frontend |
+| `DDL_AUTO` | Hibernate DDL mode (`update` for dev, `validate` for prod) |
+| `SHOW_SQL` | Log SQL queries (`false` for prod) |
 
 ---
 
 ## Roadmap
 
-- [x] Auth — JWT login/register
+- [x] Auth — JWT login/register with BCrypt
 - [x] Holdings — CRUD with live P&L
 - [x] Real-time pricing — CoinGecko with 5-min cache
 - [x] Dashboard — Portfolio chart + asset table
 - [x] Portfolio — Allocation charts + breakdown
 - [x] Trade history — Manual entry + Binance sync
 - [x] P&L Reports — FIFO gains, PDF + CSV export
-- [x] Risk & Scam Alerts — Etherscan + GoPlus
+- [x] Tax Hints — India 30% flat tax + 1% TDS (Section 115BBH / 194S)
+- [x] Risk & Scam Alerts — Etherscan + GoPlus + volatility detection
 - [x] Exchange connection — Binance API key management
-- [ ] Deployment (Week 8)
-- [ ] Real Binance sync with live API key
+- [x] Security hardening — AES-256, JWT logging, CORS env config
+- [x] Unit tests — 15 test cases for PLReportService
+- [x] Docker deployment — Multi-stage build, docker-compose
+- [ ] Cloud deployment
