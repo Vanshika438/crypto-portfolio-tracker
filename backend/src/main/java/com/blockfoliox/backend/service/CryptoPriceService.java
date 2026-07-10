@@ -19,8 +19,7 @@ public class CryptoPriceService {
 
     private static final long CACHE_DURATION = 300000; // 5 minutes
 
-    private Map<String, Map<String, Object>> cachedPrices;
-    private long lastPriceFetchTime = 0;
+    // Removed: cachedPrices and lastPriceFetchTime (/simple/price no longer used)
 
     private List<Map<String, Object>> cachedMarketData;
     private long lastMarketFetchTime = 0;
@@ -47,37 +46,6 @@ public class CryptoPriceService {
         }
 
         return String.join(",", coinIds);
-    }
-
-    public synchronized Map<String, Map<String, Object>> getAllPrices() {
-
-        long currentTime = System.currentTimeMillis();
-
-        if (cachedPrices != null && (currentTime - lastPriceFetchTime) < CACHE_DURATION) {
-            return cachedPrices;
-        }
-
-        String coinIds = getCoinIdsFromDatabase();
-
-        String url = "https://api.coingecko.com/api/v3/simple/price"
-                + "?ids=" + coinIds
-                + "&vs_currencies=inr";
-
-        try {
-
-            ResponseEntity<Map> response = restTemplate.getForEntity(url, Map.class);
-
-            cachedPrices = response.getBody();
-            lastPriceFetchTime = currentTime;
-
-            return cachedPrices;
-
-        } catch (Exception e) {
-
-            System.err.println("Error fetching prices: " + e.getMessage());
-
-            return cachedPrices != null ? cachedPrices : new HashMap<>();
-        }
     }
 
     public synchronized List<Map<String, Object>> getAllMarketData() {
@@ -113,42 +81,41 @@ public class CryptoPriceService {
         }
     }
 
-    public BigDecimal getCurrentPrice(String assetName) {
+    /**
+     * Get current price from /coins/markets — same source as the frontend chart.
+     * This replaces the old getCurrentPrice() which used /simple/price (different
+     * endpoint, separate cache, caused chart vs summary card mismatch).
+     */
+    public BigDecimal getCurrentPriceFromMarket(String assetName) {
 
         String coinId = mapToCoinGeckoId(assetName);
+        List<Map<String, Object>> marketData = getAllMarketData();
 
-        Map<String, Map<String, Object>> prices = getAllPrices();
-
-        if (prices == null || !prices.containsKey(coinId)) {
-            return BigDecimal.ZERO;
-        }
-
-        Map<String, Object> priceData = prices.get(coinId);
-
-        if (priceData == null || priceData.get("inr") == null) {
-            System.out.println("Price missing for: " + assetName + " (" + coinId + ")");
-            return BigDecimal.ZERO;
-        }
-
-        try {
-            return new BigDecimal(priceData.get("inr").toString());
-        } catch (Exception e) {
-            System.out.println("Price parsing error for: " + assetName);
-            return BigDecimal.ZERO;
-        }
+        return marketData.stream()
+                .filter(coin -> coinId.equals(coin.get("id")))
+                .map(coin -> {
+                    Object price = coin.get("current_price");
+                    if (price == null) return BigDecimal.ZERO;
+                    try {
+                        return new BigDecimal(price.toString());
+                    } catch (Exception e) {
+                        return BigDecimal.ZERO;
+                    }
+                })
+                .findFirst()
+                .orElse(BigDecimal.ZERO);
     }
 
     /**
-     * Automatically refresh prices every 5 minutes
+     * Automatically refresh market data every 5 minutes
      */
     @Scheduled(fixedRate = 300000)
     public void refreshMarketData() {
 
         try {
 
-            System.out.println("Refreshing crypto price cache...");
+            System.out.println("Refreshing crypto market data cache...");
 
-            getAllPrices();
             getAllMarketData();
 
         } catch (Exception e) {
@@ -160,40 +127,39 @@ public class CryptoPriceService {
     /**
      * Map asset names to CoinGecko IDs
      */
-    private String mapToCoinGeckoId(String symbol) {
+    public String mapToCoinGeckoId(String symbol) {
 
         if (symbol == null)
             return null;
 
-       return switch (symbol.toUpperCase()) {
-    case "BTC", "BITCOIN" -> "bitcoin";
-    case "ETH", "ETHEREUM" -> "ethereum";
-    case "SOL", "SOLANA" -> "solana";
-    case "ADA", "CARDANO" -> "cardano";
-    case "BNB", "BINANCECOIN", "BINANCE COIN" -> "binancecoin";
-    case "USDT", "TETHER" -> "tether";
-    case "XRP", "RIPPLE" -> "ripple";
-    case "DOGE", "DOGECOIN" -> "dogecoin";
-    case "DOT", "POLKADOT" -> "polkadot";
-    case "MATIC", "POLYGON" -> "polygon-pos";
-    case "LINK", "CHAINLINK" -> "chainlink";
-    case "ATOM", "COSMOS" -> "cosmos";
-    case "UNI", "UNISWAP" -> "uniswap";
-    case "TRX", "TRON" -> "tron";
-    case "LTC", "LITECOIN" -> "litecoin";
-    case "AVAX", "AVALANCHE" -> "avalanche-2";
-    case "XLM", "STELLAR" -> "stellar";
-    case "ALGO", "ALGORAND" -> "algorand";
-    case "VET", "VECHAIN" -> "vechain";
-    case "FIL", "FILECOIN" -> "filecoin";
-    case "ETC", "ETHEREUM CLASSIC" -> "ethereum-classic";
-    case "SAND", "THE SANDBOX" -> "the-sandbox";
-    case "MANA", "DECENTRALAND" -> "decentraland";
-    case "NEAR", "NEAR PROTOCOL" -> "near";
-    case "APE", "APECOIN" -> "apecoin";
-    case "OP", "OPTIMISM" -> "optimism";
-
-    default -> symbol.toLowerCase();
-};
+        return switch (symbol.toUpperCase()) {
+            case "BTC", "BITCOIN" -> "bitcoin";
+            case "ETH", "ETHEREUM" -> "ethereum";
+            case "SOL", "SOLANA" -> "solana";
+            case "ADA", "CARDANO" -> "cardano";
+            case "BNB", "BINANCECOIN", "BINANCE COIN" -> "binancecoin";
+            case "USDT", "TETHER" -> "tether";
+            case "XRP", "RIPPLE" -> "ripple";
+            case "DOGE", "DOGECOIN" -> "dogecoin";
+            case "DOT", "POLKADOT" -> "polkadot";
+            case "MATIC", "POLYGON" -> "polygon-pos";
+            case "LINK", "CHAINLINK" -> "chainlink";
+            case "ATOM", "COSMOS" -> "cosmos";
+            case "UNI", "UNISWAP" -> "uniswap";
+            case "TRX", "TRON" -> "tron";
+            case "LTC", "LITECOIN" -> "litecoin";
+            case "AVAX", "AVALANCHE" -> "avalanche-2";
+            case "XLM", "STELLAR" -> "stellar";
+            case "ALGO", "ALGORAND" -> "algorand";
+            case "VET", "VECHAIN" -> "vechain";
+            case "FIL", "FILECOIN" -> "filecoin";
+            case "ETC", "ETHEREUM CLASSIC" -> "ethereum-classic";
+            case "SAND", "THE SANDBOX" -> "the-sandbox";
+            case "MANA", "DECENTRALAND" -> "decentraland";
+            case "NEAR", "NEAR PROTOCOL" -> "near";
+            case "APE", "APECOIN" -> "apecoin";
+            case "OP", "OPTIMISM" -> "optimism";
+            default -> symbol.toLowerCase();
+        };
     }
 }

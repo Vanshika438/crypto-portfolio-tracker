@@ -54,21 +54,19 @@ public class ExchangeService {
             BigDecimal quantity = BigDecimal.valueOf(0.3 + random.nextDouble() * 2)
                     .setScale(2, RoundingMode.HALF_UP);
 
-            BigDecimal marketPrice = cryptoPriceService.getCurrentPrice(coin);
+            // Uses /coins/markets — same source as frontend chart and all other endpoints
+            BigDecimal marketPrice = cryptoPriceService.getCurrentPriceFromMarket(coin);
             BigDecimal variation   = BigDecimal.valueOf(0.9 + (random.nextDouble() * 0.2));
             BigDecimal buyPrice    = marketPrice.multiply(variation)
                     .setScale(2, RoundingMode.HALF_UP);
 
             holdingRepository.findByUserAndAssetName(user, coin).ifPresentOrElse(
                 existing -> {
-                    // Only update mutable fields — @PrePersist handles createdAt
-                    // and @Column(updatable = false) prevents accidental overwrites
                     existing.setQuantity(quantity);
                     existing.setBuyPrice(buyPrice);
                     updatedHoldings.add(existing);
                 },
                 () -> {
-                    // New holding — let @PrePersist set createdAt automatically
                     Holding newHolding = Holding.builder()
                             .user(user)
                             .assetName(coin)

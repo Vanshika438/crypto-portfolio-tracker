@@ -138,15 +138,16 @@ public class PLReportService {
         List<Map<String, Object>> breakdown = new ArrayList<>();
 
         for (Holding h : holdings) {
-            BigDecimal currentPriceInr = cryptoPriceService.getCurrentPrice(h.getAssetName());
+            // Uses /coins/markets — same source as frontend chart and all other endpoints
+            BigDecimal currentPriceInr = cryptoPriceService.getCurrentPriceFromMarket(h.getAssetName());
             BigDecimal currentPriceUsd = usdToInr.compareTo(BigDecimal.ZERO) == 0
                     ? BigDecimal.ZERO
                     : currentPriceInr.divide(usdToInr, 8, RoundingMode.HALF_UP);
 
-            BigDecimal investedInr  = h.getBuyPrice().multiply(h.getQuantity());
+            BigDecimal investedInr   = h.getBuyPrice().multiply(h.getQuantity());
             BigDecimal currentValInr = currentPriceInr.multiply(h.getQuantity());
-            BigDecimal gainInr      = currentValInr.subtract(investedInr);
-            BigDecimal gainUsd      = gainInr.divide(usdToInr, 2, RoundingMode.HALF_UP);
+            BigDecimal gainInr       = currentValInr.subtract(investedInr);
+            BigDecimal gainUsd       = gainInr.divide(usdToInr, 2, RoundingMode.HALF_UP);
 
             BigDecimal gainPct = investedInr.compareTo(BigDecimal.ZERO) == 0
                     ? BigDecimal.ZERO
@@ -159,14 +160,14 @@ public class PLReportService {
             totalCurrentInr    = totalCurrentInr.add(currentValInr);
 
             Map<String, Object> row = new LinkedHashMap<>();
-            row.put("symbol",           h.getAssetName());
-            row.put("quantity",         h.getQuantity());
-            row.put("avgCostInr",       h.getBuyPrice().setScale(2, RoundingMode.HALF_UP));
-            row.put("currentPriceInr",  currentPriceInr.setScale(2, RoundingMode.HALF_UP));
-            row.put("currentPriceUsd",  currentPriceUsd.setScale(2, RoundingMode.HALF_UP));
+            row.put("symbol",            h.getAssetName());
+            row.put("quantity",          h.getQuantity());
+            row.put("avgCostInr",        h.getBuyPrice().setScale(2, RoundingMode.HALF_UP));
+            row.put("currentPriceInr",   currentPriceInr.setScale(2, RoundingMode.HALF_UP));
+            row.put("currentPriceUsd",   currentPriceUsd.setScale(2, RoundingMode.HALF_UP));
             row.put("unrealizedGainInr", gainInr.setScale(2, RoundingMode.HALF_UP));
             row.put("unrealizedGainUsd", gainUsd.setScale(2, RoundingMode.HALF_UP));
-            row.put("gainPercent",      gainPct.setScale(2, RoundingMode.HALF_UP));
+            row.put("gainPercent",       gainPct.setScale(2, RoundingMode.HALF_UP));
             breakdown.add(row);
         }
 
@@ -214,9 +215,9 @@ public class PLReportService {
                     .findByUserAndAssetSymbolOrderByExecutedAtAsc(user, symbol);
 
             // FIFO queue: [quantity, buyPriceInr, buyDate]
-            Deque<Object[]> fifoQueue    = new ArrayDeque<>();
-            BigDecimal symbolGainInr     = BigDecimal.ZERO;
-            BigDecimal symbolTds         = BigDecimal.ZERO;
+            Deque<Object[]> fifoQueue        = new ArrayDeque<>();
+            BigDecimal symbolGainInr         = BigDecimal.ZERO;
+            BigDecimal symbolTds             = BigDecimal.ZERO;
             List<Map<String, Object>> tradeBreakdown = new ArrayList<>();
 
             for (Trade trade : trades) {
@@ -248,7 +249,7 @@ public class PLReportService {
                     while (remainingToSell.compareTo(BigDecimal.ZERO) > 0
                             && !fifoQueue.isEmpty()) {
 
-                        Object[]   oldest   = fifoQueue.peekFirst();
+                        Object[]   oldest    = fifoQueue.peekFirst();
                         BigDecimal available = (BigDecimal) oldest[0];
                         BigDecimal costInr   = (BigDecimal) oldest[1];
                         LocalDateTime buyDate = (LocalDateTime) oldest[2];
@@ -304,11 +305,11 @@ public class PLReportService {
             totalTdsDeductedInr  = totalTdsDeductedInr.add(symbolTds);
 
             Map<String, Object> row = new LinkedHashMap<>();
-            row.put("symbol",          symbol);
-            row.put("totalGainInr",    symbolGainInr.setScale(2, RoundingMode.HALF_UP));
-            row.put("taxPayableInr",   symbolTaxPayable);
-            row.put("tdsDeductedInr",  symbolTds.setScale(2, RoundingMode.HALF_UP));
-            row.put("trades",          tradeBreakdown);
+            row.put("symbol",         symbol);
+            row.put("totalGainInr",   symbolGainInr.setScale(2, RoundingMode.HALF_UP));
+            row.put("taxPayableInr",  symbolTaxPayable);
+            row.put("tdsDeductedInr", symbolTds.setScale(2, RoundingMode.HALF_UP));
+            row.put("trades",         tradeBreakdown);
             breakdown.add(row);
         }
 

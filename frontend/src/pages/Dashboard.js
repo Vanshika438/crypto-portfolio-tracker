@@ -90,63 +90,72 @@ const Dashboard = () => {
   };
 
   // ── Total portfolio area chart data ────────────────────────────────────────
-const totalPortfolioData = React.useMemo(() => {
+  const totalPortfolioData = React.useMemo(() => {
     if (!portfolio.length || Object.keys(charts).length === 0) return [];
- 
+
     const numPoints = 168;
     const now       = Date.now();
     const interval  = (7 * 24 * 60 * 60 * 1000) / numPoints;
     const startTime = now - 7 * 24 * 60 * 60 * 1000;
-    const unified   = [];
- 
-    // Per-asset USD→INR multiplier
-    // currentPrice (INR) / lastSparklinePoint (USD) = INR per 1 USD for that coin
-    const inrPerUsd = {};
+
+    // Per-asset scale factor:
+    //   scale = (quantity × currentPrice_INR) / lastSparklinePrice_INR
+    //
+    // charts[] already stores INR prices (fetchCharts multiplies the raw USD
+    // sparkline by CoinGecko's current_price which is fetched in INR).
+    // Dividing by the last sparkline point gives us a multiplier so that
+    // at t=now the coin contributes exactly quantity × currentPrice — the
+    // same figure used in the summary card — keeping chart and card in sync.
+    const scales = {};
     portfolio.forEach((asset) => {
       const coinId    = guessSymbol(asset.assetName);
       const coinChart = charts[coinId] || [];
       if (!coinChart.length) return;
- 
-      const lastUsd    = coinChart[coinChart.length - 1].value;
-      const currentInr = Number(asset.currentPrice || 0);
- 
-      inrPerUsd[coinId] = lastUsd > 0 && currentInr > 0
-        ? currentInr / lastUsd
-        : 1;
+
+      const lastSparklinePrice = coinChart[coinChart.length - 1].value;
+      const currentInr         = Number(asset.currentPrice || 0);
+      const quantity           = Number(asset.quantity || 0);
+
+      scales[coinId] = lastSparklinePrice > 0
+        ? (quantity * currentInr) / lastSparklinePrice
+        : 0;
     });
- 
-    // Build all points uniformly — NO snap on last point
-    for (let i = 0; i <= numPoints; i++) {
+
+    const unified = [];
+
+    // Build all intermediate points
+    for (let i = 0; i < numPoints; i++) {
       const targetTime = startTime + i * interval;
       let total = 0;
- 
+
       portfolio.forEach((asset) => {
         const coinId    = guessSymbol(asset.assetName);
-        const quantity  = Number(asset.quantity || 0);
         const coinChart = charts[coinId] || [];
-        if (!coinChart.length) return;
- 
+        if (!coinChart.length || !scales[coinId]) return;
+
         // Find closest sparkline price to targetTime
-        let closestUsd = coinChart[0].value;
-        let minDiff    = Math.abs(coinChart[0].time - targetTime);
+        let closest = coinChart[0].value;
+        let minDiff = Math.abs(coinChart[0].time - targetTime);
         for (let j = 1; j < coinChart.length; j++) {
           const diff = Math.abs(coinChart[j].time - targetTime);
           if (diff < minDiff) {
-            minDiff    = diff;
-            closestUsd = coinChart[j].value;
+            minDiff = diff;
+            closest = coinChart[j].value;
           }
         }
- 
-        // Convert to INR then multiply by quantity
-        const closestInr = closestUsd * (inrPerUsd[coinId] || 1);
-        total += closestInr * quantity;
+
+        total += closest * scales[coinId];
       });
- 
+
       unified.push({ time: targetTime, value: Number(total.toFixed(2)) });
     }
- 
+
+    // Final point always snaps to the authoritative backend currentValue
+    // so the chart endpoint always matches the summary card exactly.
+    unified.push({ time: now, value: Number((summary.currentValue || 0).toFixed(2)) });
+
     return unified;
-  }, [portfolio, charts]);
+  }, [portfolio, charts, summary.currentValue]);
 
   const portfolioTrendPositive = React.useMemo(() => {
     if (totalPortfolioData.length < 2) return true;

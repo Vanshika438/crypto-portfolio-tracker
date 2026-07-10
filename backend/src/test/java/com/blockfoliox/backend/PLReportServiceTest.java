@@ -224,7 +224,8 @@ class PLReportServiceTest {
         Holding h = makeHolding("BTC", 1.0, 2000000);
 
         when(holdingRepository.findByUser(testUser)).thenReturn(List.of(h));
-        when(cryptoPriceService.getCurrentPrice("BTC"))
+        // Updated: getCurrentPrice → getCurrentPriceFromMarket
+        when(cryptoPriceService.getCurrentPriceFromMarket("BTC"))
                 .thenReturn(BigDecimal.valueOf(2500000));
 
         Map<String, Object> result = plReportService.calculateUnrealizedGains(testUser);
@@ -240,7 +241,8 @@ class PLReportServiceTest {
         Holding h = makeHolding("ETH", 2.0, 200000);
 
         when(holdingRepository.findByUser(testUser)).thenReturn(List.of(h));
-        when(cryptoPriceService.getCurrentPrice("ETH"))
+        // Updated: getCurrentPrice → getCurrentPriceFromMarket
+        when(cryptoPriceService.getCurrentPriceFromMarket("ETH"))
                 .thenReturn(BigDecimal.valueOf(150000));
 
         Map<String, Object> result = plReportService.calculateUnrealizedGains(testUser);
@@ -271,9 +273,10 @@ class PLReportServiceTest {
         Holding eth = makeHolding("ETH", 2.0, 150000);
 
         when(holdingRepository.findByUser(testUser)).thenReturn(List.of(btc, eth));
-        when(cryptoPriceService.getCurrentPrice("BTC"))
+        // Updated: getCurrentPrice → getCurrentPriceFromMarket
+        when(cryptoPriceService.getCurrentPriceFromMarket("BTC"))
                 .thenReturn(BigDecimal.valueOf(2200000)); // +200000
-        when(cryptoPriceService.getCurrentPrice("ETH"))
+        when(cryptoPriceService.getCurrentPriceFromMarket("ETH"))
                 .thenReturn(BigDecimal.valueOf(130000));  // -20000 * 2 = -40000
 
         Map<String, Object> result = plReportService.calculateUnrealizedGains(testUser);

@@ -16,7 +16,7 @@ public class RiskDetectionService {
     private final RiskAlertRepository riskAlertRepository;
     private final WatchlistRepository watchlistRepository;
     private final EtherscanService etherscanService;
-    private final TokenSecurityService tokenSecurityService;  
+    private final TokenSecurityService tokenSecurityService;
     private final CryptoPriceService cryptoPriceService;
 
     private static final Map<String, String> KNOWN_CONTRACTS = Map.of(
@@ -31,16 +31,16 @@ public class RiskDetectionService {
             RiskAlertRepository riskAlertRepository,
             WatchlistRepository watchlistRepository,
             EtherscanService etherscanService,
-            TokenSecurityService tokenSecurityService,  
+            TokenSecurityService tokenSecurityService,
             CryptoPriceService cryptoPriceService) {
 
-        this.holdingRepository   = holdingRepository;
-        this.userRepository      = userRepository;
-        this.riskAlertRepository = riskAlertRepository;
-        this.watchlistRepository = watchlistRepository;
-        this.etherscanService    = etherscanService;
-        this.tokenSecurityService = tokenSecurityService; 
-        this.cryptoPriceService  = cryptoPriceService;
+        this.holdingRepository    = holdingRepository;
+        this.userRepository       = userRepository;
+        this.riskAlertRepository  = riskAlertRepository;
+        this.watchlistRepository  = watchlistRepository;
+        this.etherscanService     = etherscanService;
+        this.tokenSecurityService = tokenSecurityService;
+        this.cryptoPriceService   = cryptoPriceService;
     }
 
     @Scheduled(fixedRate = 21_600_000)
@@ -96,7 +96,8 @@ public class RiskDetectionService {
     }
 
     private void checkCoinGeckoPresence(User user, String symbol) {
-        java.math.BigDecimal price = cryptoPriceService.getCurrentPrice(symbol);
+        // Uses /coins/markets — same source as frontend chart and all other endpoints
+        java.math.BigDecimal price = cryptoPriceService.getCurrentPriceFromMarket(symbol);
         if (price.compareTo(java.math.BigDecimal.ZERO) == 0) {
             saveAlertIfNew(user, symbol,
                     RiskAlert.AlertType.NOT_ON_COINGECKO,

@@ -76,8 +76,8 @@ public class HoldingController {
 
             BigDecimal investedValue = p.getQuantity().multiply(p.getBuyPrice());
 
-            // ✅ FIX: correct price fetch
-            BigDecimal currentPrice = cryptoPriceService.getCurrentPrice(p.getAssetName());
+            // Uses /coins/markets — same source as frontend chart and /summary
+            BigDecimal currentPrice = cryptoPriceService.getCurrentPriceFromMarket(p.getAssetName());
 
             BigDecimal currentValue = p.getQuantity().multiply(currentPrice);
             BigDecimal profitLoss = currentValue.subtract(investedValue);
@@ -115,7 +115,10 @@ public class HoldingController {
 
         for (Holding holding : holdings) {
             BigDecimal investedValue = holding.getBuyPrice().multiply(holding.getQuantity());
-            BigDecimal currentPrice = cryptoPriceService.getCurrentPrice(holding.getAssetName());
+
+            // Uses /coins/markets — same source as frontend chart and /pl
+            BigDecimal currentPrice = cryptoPriceService.getCurrentPriceFromMarket(holding.getAssetName());
+
             BigDecimal currentValue = holding.getQuantity().multiply(currentPrice);
 
             totalInvested = totalInvested.add(investedValue);

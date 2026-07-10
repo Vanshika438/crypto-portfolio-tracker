@@ -17,11 +17,6 @@ public class CryptoController {
         this.cryptoPriceService = cryptoPriceService;
     }
 
-    @GetMapping("/prices")
-    public Map<String, Map<String, Object>> getPrices() {
-        return cryptoPriceService.getAllPrices();
-    }
-
     @GetMapping("/market")
     public List<Map<String, Object>> getMarketData() {
         return cryptoPriceService.getAllMarketData();
